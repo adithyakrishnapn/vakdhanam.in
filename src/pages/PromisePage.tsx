@@ -121,27 +121,50 @@ export default function PromisePage() {
               {completionText}
             </div>
 
-            {promise.screenshotUrl && (
-              <div className="space-y-2 rounded-2xl border border-white/10 bg-black/20 p-5">
-                <div className="flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-white/45">
-                  <ImageIcon size={14} className="text-brand-yellow" />
-                  <span>Evidence / Screenshot Proof</span>
+            {(promise.sourceLink || promise.screenshotUrl) && (
+              <div className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.02] p-5">
+                <div className="text-xs uppercase tracking-[0.3em] text-white/45 font-semibold">
+                  Verification & Evidence
                 </div>
-                <div
-                  onClick={() => setExpandedImage(promise.screenshotUrl || null)}
-                  className="group relative cursor-zoom-in overflow-hidden rounded-2xl border border-white/10 bg-black/40 max-w-md"
-                >
-                  <img
-                    src={promise.screenshotUrl}
-                    alt="Proof evidence screenshot"
-                    className="max-h-[300px] w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                    <span className="rounded-xl bg-white/15 px-4 py-2 text-sm font-semibold text-white backdrop-blur-md">
-                      Click to elaborate image
-                    </span>
+
+                {promise.sourceLink && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Link2 size={16} className="text-accent" />
+                    <span className="text-white/55 font-medium">Source link:</span>
+                    <a
+                      href={promise.sourceLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-accent underline underline-offset-4 hover:text-accent/85 break-all"
+                    >
+                      {promise.sourceLink}
+                    </a>
                   </div>
-                </div>
+                )}
+
+                {promise.screenshotUrl && (
+                  <div className="space-y-2 pt-2 border-t border-white/5">
+                    <div className="flex items-center gap-2 text-xs text-white/45">
+                      <ImageIcon size={14} className="text-brand-yellow" />
+                      <span>Attached Screenshot:</span>
+                    </div>
+                    <div
+                      onClick={() => setExpandedImage(promise.screenshotUrl || null)}
+                      className="group relative cursor-zoom-in overflow-hidden rounded-xl border border-white/10 bg-black/40 max-w-md"
+                    >
+                      <img
+                        src={promise.screenshotUrl}
+                        alt="Proof evidence screenshot"
+                        className="max-h-[300px] w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                        <span className="rounded-xl bg-white/15 px-4 py-2 text-xs font-semibold text-white backdrop-blur-md">
+                          Click to elaborate image
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -175,7 +198,6 @@ export default function PromisePage() {
               <Button onClick={() => votePromise(promise.id)}><Vote size={16} /> Vote first</Button>
               <Button variant="outline" onClick={() => navigate('/submit')}><MessageSquare size={16} /> Add another Vakdhanam</Button>
             </div>
-            <div className="text-sm text-white/45">Source: <a href={promise.sourceLink} target="_blank" rel="noreferrer" className="text-accent underline underline-offset-4">manifesto proof</a></div>
           </CardFooter>
         </Card>
 
