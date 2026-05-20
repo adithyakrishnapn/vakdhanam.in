@@ -242,27 +242,68 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="mt-8 flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-white/10 bg-white/[0.03] p-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <Filter size={16} className="text-accent" />
-            {categoryOptions.map((option) => (
-              <button key={option} onClick={() => setCategory(option)} className={`rounded-full px-4 py-2 text-sm transition ${category === option ? 'bg-accent text-brand-ink' : 'bg-white/5 text-white/70 hover:bg-white/10'}`}>
-                {option}
-              </button>
-            ))}
+        <section className="mt-8 space-y-4 rounded-3xl border border-white/10 bg-white/[0.03] p-6">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Filter size={16} className="text-accent" />
+              <p className="text-xs uppercase tracking-[0.3em] text-white/45 font-semibold">Sector</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {categoryOptions.map((option) => (
+                <button
+                  key={option}
+                  onClick={() => setCategory(option)}
+                  className={`rounded-full px-3 py-2 text-xs font-medium transition-all duration-200 ${
+                    category === option
+                      ? 'bg-accent text-brand-ink scale-105 shadow-glow'
+                      : 'bg-white/5 text-white/70 hover:bg-white/10 active:scale-95'
+                  }`}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {districtOptions.map((option) => (
-              <button key={option} onClick={() => setDistrict(option)} className={`rounded-full px-4 py-2 text-sm transition ${district === option ? 'bg-white text-brand-ink' : 'bg-white/5 text-white/70 hover:bg-white/10'}`}>
-                {option}
-              </button>
-            ))}
+
+          <div className="border-t border-white/5 pt-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Filter size={16} className="text-brand-yellow" />
+              <p className="text-xs uppercase tracking-[0.3em] text-white/45 font-semibold">Location</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {districtOptions.map((option) => (
+                <button
+                  key={option}
+                  onClick={() => setDistrict(option)}
+                  className={`rounded-full px-3 py-2 text-xs font-medium transition-all duration-200 ${
+                    district === option
+                      ? 'bg-brand-yellow text-brand-ink scale-105 shadow-glow'
+                      : 'bg-white/5 text-white/70 hover:bg-white/10 active:scale-95'
+                  }`}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
           </div>
+
+          {(category !== 'All' || district !== 'All') && (
+            <div className="border-t border-white/5 pt-3 flex justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearFilters}
+                className="text-xs"
+              >
+                Clear all filters
+              </Button>
+            </div>
+          )}
         </section>
 
         <section id="feed" className="mt-8 grid gap-6 lg:grid-cols-[1fr_0.35fr]">
           <div className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <p className="text-xs uppercase tracking-[0.3em] text-white/45">Public feed</p>
                 <h2 className="text-3xl font-bold">Trending promises</h2>
@@ -274,7 +315,13 @@ export default function HomePage() {
                   ['Recent', 'recent'],
                   ['Completed', 'completed'],
                 ].map(([label, value]) => (
-                  <Button key={value} variant={feedMode === value ? 'default' : 'ghost'} size="sm" onClick={() => setFeedMode(value as typeof feedMode)}>
+                  <Button
+                    key={value}
+                    variant={feedMode === value ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setFeedMode(value as typeof feedMode)}
+                    className={feedMode === value ? 'animate-pulse' : 'hover:bg-white/10'}
+                  >
                     <ArrowUpDown size={14} /> {label}
                   </Button>
                 ))}
