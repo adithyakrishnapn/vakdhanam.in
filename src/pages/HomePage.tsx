@@ -105,7 +105,7 @@ export default function HomePage() {
           <div className="hidden items-center gap-2 md:flex md:w-auto md:justify-end">
             {authSession ? (
               <Button variant="ghost" size="sm" onClick={() => navigate('/me')}>
-                {profile?.username ?? authSession.displayName}
+                {authSession.displayName}
               </Button>
             ) : (
               <>
@@ -141,7 +141,7 @@ export default function HomePage() {
             <div className="flex flex-col gap-2 rounded-3xl border border-white/10 bg-black/50 p-3 backdrop-blur-xl">
               {authSession ? (
                 <Button variant="ghost" className="justify-start" onClick={() => { setMobileMenuOpen(false); navigate('/me'); }}>
-                  {profile?.username ?? authSession.displayName}
+                  {authSession.displayName}
                 </Button>
               ) : (
                 <>

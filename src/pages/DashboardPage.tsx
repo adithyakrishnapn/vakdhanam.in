@@ -1,28 +1,46 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, MessageSquare, FileText, LogOut, UserCircle2 } from 'lucide-react';
+import { Trash2, MessageSquare, FileText, LogOut, UserCircle2, Pencil, Save, Loader2 } from 'lucide-react';
 import { collection, limit, onSnapshot, query, where } from 'firebase/firestore';
-import { signOut } from 'firebase/auth';
+import { signOut, updateProfile } from 'firebase/auth';
 import { Seo } from '@/components/seo/Seo';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { MessagePopup } from '@/components/ui/message-popup';
 import { useAppStore } from '@/store/useAppStore';
 import { formatRelativeTime } from '@/lib/format';
 import { deleteOwnComment, deleteOwnSubmission } from '@/lib/firebase-api';
 import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebase';
 import { mapCommentDocument, mapSubmissionDocument } from '@/lib/firestore-mappers';
+import { profileSchema } from '@/lib/validator';
 import type { CommentItem, SubmissionItem } from '@/types';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
   const authSession = useAppStore((state) => state.authSession);
+  const setAuthSessionDisplayName = useAppStore((state) => state.setAuthSessionDisplayName);
   const signOutSession = useAppStore((state) => state.signOutSession);
   const [comments, setComments] = useState<CommentItem[]>([]);
   const [submissions, setSubmissions] = useState<SubmissionItem[]>([]);
   const [busyCommentId, setBusyCommentId] = useState('');
   const [busySubmissionId, setBusySubmissionId] = useState('');
+  const [username, setUsername] = useState('');
+  const [savingUsername, setSavingUsername] = useState(false);
+  const [popup, setPopup] = useState<{ open: boolean; title: string; message: string; variant: 'success' | 'error' | 'info' }>({
+    open: false,
+    title: '',
+    message: '',
+    variant: 'info',
+  });
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (authSession?.displayName) {
+      setUsername(authSession.displayName);
+    }
+  }, [authSession?.displayName]);
 
   useEffect(() => {
     if (!authSession?.uid) {
@@ -87,6 +105,43 @@ export default function DashboardPage() {
     }
   }
 
+  async function handleUsernameSave() {
+    const nextUsername = username.trim();
+    if (!nextUsername) {
+      setPopup({ open: true, title: 'Username required', message: 'Please enter a username before saving.', variant: 'error' });
+      return;
+    }
+
+    const auth = getFirebaseAuth();
+    const user = auth?.currentUser;
+    if (!auth || !user) {
+      setPopup({ open: true, title: 'Not signed in', message: 'Login again before changing your username.', variant: 'error' });
+      return;
+    }
+
+    const parsed = profileSchema.safeParse({
+      username: nextUsername,
+      email: authSession!.email,
+      avatar: 'wave',
+    });
+    if (!parsed.success) {
+      setPopup({ open: true, title: 'Invalid username', message: parsed.error.issues[0]?.message ?? 'Please use 3-24 characters with letters, numbers, dots, hyphens, or underscores.', variant: 'error' });
+      return;
+    }
+
+    setSavingUsername(true);
+    setPopup({ open: false, title: '', message: '', variant: 'info' });
+    try {
+      await updateProfile(user, { displayName: nextUsername });
+      setAuthSessionDisplayName(nextUsername);
+      setPopup({ open: true, title: 'Username updated', message: 'Your account name has been changed.', variant: 'success' });
+    } catch (cause) {
+      setPopup({ open: true, title: 'Could not update username', message: cause instanceof Error ? cause.message : 'Please try again.', variant: 'error' });
+    } finally {
+      setSavingUsername(false);
+    }
+  }
+
   if (!authSession) {
     return (
       <div className="mx-auto flex min-h-screen max-w-4xl items-center justify-center px-4 py-10">
@@ -126,6 +181,43 @@ export default function DashboardPage() {
       </div>
 
       {error && <div className="mb-6 rounded-2xl border border-brand-red/30 bg-brand-red/10 p-4 text-sm text-white/75">{error}</div>}
+
+      <Card className="mb-6">
+        <CardContent className="space-y-4 p-6 md:p-8">
+          <div className="flex items-center gap-3">
+            <UserCircle2 className="text-accent" />
+            <div>
+              <p className="text-xs uppercase tracking-[0.28em] text-white/45">User panel</p>
+              <h2 className="text-2xl font-bold">Change your username</h2>
+            </div>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
+            <div className="space-y-2">
+              <label className="text-xs uppercase tracking-[0.2em] text-white/45" htmlFor="username">Username</label>
+              <Input
+                id="username"
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                placeholder="Your account username"
+              />
+              <p className="text-xs text-white/45">This changes the name shown across your account. Soft login users stay as vakdhanm_user.</p>
+            </div>
+            <Button onClick={handleUsernameSave} disabled={savingUsername} className="md:w-fit">
+              {savingUsername ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+              Save username
+            </Button>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 text-sm text-white/65">
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/5 px-3 py-2">
+              <Pencil size={14} className="text-accent" /> Signed in as {authSession.displayName}
+            </span>
+            <span className="rounded-full bg-white/5 px-3 py-2">Role: {authSession.role}</span>
+            <span className="rounded-full bg-white/5 px-3 py-2">{authSession.emailVerified ? 'Email verified' : 'Email pending'}</span>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
@@ -208,6 +300,14 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <MessagePopup
+        open={popup.open}
+        title={popup.title}
+        message={popup.message}
+        variant={popup.variant}
+        onClose={() => setPopup((current) => ({ ...current, open: false }))}
+      />
     </div>
   );
 }

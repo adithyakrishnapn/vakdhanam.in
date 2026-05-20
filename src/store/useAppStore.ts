@@ -34,6 +34,7 @@ interface AppState {
   setCategory: (value: string) => void;
   setDistrict: (value: string) => void;
   setFeedMode: (value: FeedMode) => void;
+  setAuthSessionDisplayName: (displayName: string) => void;
   upsertProfile: (input: { username: string; email: string; avatar: AvatarName }) => ParticipantProfile;
   signOutSession: () => void;
   likePromise: (id: string) => Promise<void>;
@@ -158,6 +159,7 @@ export const useAppStore = create<AppState>()(
       setCategory: (category) => set({ category }),
       setDistrict: (district) => set({ district }),
       setFeedMode: (feedMode) => set({ feedMode }),
+      setAuthSessionDisplayName: (displayName) => set((state) => state.authSession ? { authSession: { ...state.authSession, displayName } } : state),
       clearFilters: () => set({ search: '', category: 'All', district: 'All', feedMode: 'trending' }),
       upsertProfile: (input) => {
         const profile = buildProfile(input);
