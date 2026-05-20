@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "composite": true,
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "moduleDetection": "force",
+    "noEmit": true,
+    "ignoreDeprecations": "5.0",
+    "types": ["node"]
+  },
+  "include": ["vite.config.ts", "tailwind.config.ts", "postcss.config.js"]
+}
