@@ -250,17 +250,15 @@ export default function HomePage() {
             </div>
             <div className="flex flex-wrap gap-2">
               {categoryOptions.map((option) => (
-                <button
+                <Button
                   key={option}
+                  variant={category === option ? 'default' : 'outline'}
+                  size="sm"
                   onClick={() => setCategory(option)}
-                  className={`rounded-full px-3 py-2 text-xs font-medium transition-all duration-200 ${
-                    category === option
-                      ? 'bg-accent text-brand-ink scale-105 shadow-glow'
-                      : 'bg-white/5 text-white/70 hover:bg-white/10 active:scale-95'
-                  }`}
+                  className={category === option ? 'animate-pulse' : 'hover:bg-white/10'}
                 >
                   {option}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
@@ -272,17 +270,15 @@ export default function HomePage() {
             </div>
             <div className="flex flex-wrap gap-2">
               {districtOptions.map((option) => (
-                <button
+                <Button
                   key={option}
+                  variant={district === option ? 'default' : 'outline'}
+                  size="sm"
                   onClick={() => setDistrict(option)}
-                  className={`rounded-full px-3 py-2 text-xs font-medium transition-all duration-200 ${
-                    district === option
-                      ? 'bg-brand-yellow text-brand-ink scale-105 shadow-glow'
-                      : 'bg-white/5 text-white/70 hover:bg-white/10 active:scale-95'
-                  }`}
+                  className={district === option ? 'animate-pulse' : 'hover:bg-white/10'}
                 >
                   {option}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
