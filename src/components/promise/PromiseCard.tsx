@@ -11,6 +11,7 @@ import { useState } from 'react';
 
 interface Props {
   promise: PromiseItem;
+  onFeedback?: (payload: { title: string; message: string; variant: 'success' | 'error' | 'info' }) => void;
 }
 
 const statusClass: Record<PromiseItem['status'], string> = {
@@ -20,7 +21,7 @@ const statusClass: Record<PromiseItem['status'], string> = {
   Failed: 'bg-brand-red/15 text-brand-red',
 };
 
-export default function PromiseCard({ promise }: Props) {
+export default function PromiseCard({ promise, onFeedback }: Props) {
   const navigate = useNavigate();
   const likePromise = useAppStore((state) => state.likePromise);
   const dislikePromise = useAppStore((state) => state.dislikePromise);
@@ -30,10 +31,17 @@ export default function PromiseCard({ promise }: Props) {
   
   const memeEmojis = ['😂', '🤦', '😤', '😡', '🙄', '😒', '👏', '🎉', '❤️', '🔥', '💯', '👌'];
 
-  const handleAnimatedClick = async (buttonId: string, action: () => Promise<void>) => {
+  const handleAnimatedClick = async (buttonId: string, action: () => Promise<void>, successTitle: string, successMessage: string) => {
     setAnimatingButton(buttonId);
     try {
       await action();
+      onFeedback?.({ title: successTitle, message: successMessage, variant: 'success' });
+    } catch (cause) {
+      onFeedback?.({
+        title: `${successTitle} failed`,
+        message: cause instanceof Error ? cause.message : 'Please try again.',
+        variant: 'error',
+      });
     } finally {
       setTimeout(() => setAnimatingButton(null), 600);
     }
@@ -62,6 +70,7 @@ export default function PromiseCard({ promise }: Props) {
   const handleMemeReact = (emoji: string) => {
     console.log('Meme react:', emoji);
     setShowMemeReacts(false);
+    onFeedback?.({ title: 'Reaction sent', message: `Sent ${emoji} to ${promise.title}.`, variant: 'success' });
   };
 
   return (
@@ -119,7 +128,7 @@ export default function PromiseCard({ promise }: Props) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => handleAnimatedClick('like', () => likePromise(promise.id))}
+            onClick={() => handleAnimatedClick('like', () => likePromise(promise.id), 'Liked', 'Your like was recorded.')}
             className={animatingButton === 'like' ? 'animate-pulse' : ''}
           >
             <ArrowUp size={14} /> Like
@@ -127,7 +136,7 @@ export default function PromiseCard({ promise }: Props) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => handleAnimatedClick('dislike', () => dislikePromise(promise.id))}
+            onClick={() => handleAnimatedClick('dislike', () => dislikePromise(promise.id), 'Disliked', 'Your dislike was recorded.')}
             className={animatingButton === 'dislike' ? 'animate-pulse' : ''}
           >
             <ArrowDown size={14} /> Dislike
@@ -135,7 +144,7 @@ export default function PromiseCard({ promise }: Props) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => handleAnimatedClick('vote', () => votePromise(promise.id))}
+            onClick={() => handleAnimatedClick('vote', () => votePromise(promise.id), 'Vote counted', 'Your vote was recorded.')}
             className={animatingButton === 'vote' ? 'animate-bounce' : ''}
           >
             <Vote size={14} /> Vote
@@ -146,7 +155,7 @@ export default function PromiseCard({ promise }: Props) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => handleAnimatedClick('share', handleShare)}
+            onClick={() => handleAnimatedClick('share', handleShare, 'Shared', 'Share link copied or shared successfully.')}
             className={animatingButton === 'share' ? 'animate-bounce' : ''}
           >
             <Share2 size={14} /> Share

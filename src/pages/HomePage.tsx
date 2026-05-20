@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { MessagePopup } from '@/components/ui/message-popup';
 import { useAppStore, categoryOptions, districtOptions } from '@/store/useAppStore';
 import { formatCompactNumber } from '@/lib/format';
 import PromiseCard from '@/components/promise/PromiseCard';
@@ -16,6 +17,12 @@ const heroCopy = 'ഓർമ്മയുണ്ടോ ഈ വാഗ്ദാനം
 export default function HomePage() {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [popup, setPopup] = useState<{ open: boolean; title: string; message: string; variant: 'success' | 'error' | 'info' }>({
+    open: false,
+    title: '',
+    message: '',
+    variant: 'info',
+  });
   const promises = useAppStore((state) => state.promises);
   const search = useAppStore((state) => state.search);
   const category = useAppStore((state) => state.category);
@@ -31,6 +38,12 @@ export default function HomePage() {
   const authSession = useAppStore((state) => state.authSession);
   const profile = useAppStore((state) => state.profile);
 
+  const showPopup = (title: string, message: string, variant: 'success' | 'error' | 'info' = 'success') => {
+    setPopup({ open: true, title, message, variant });
+  };
+
+  const normalize = (value: string) => value.trim().toLowerCase();
+
   const filtered = useMemo(() => {
     let items = [...promises];
     if (search) {
@@ -43,10 +56,12 @@ export default function HomePage() {
       );
     }
     if (category !== 'All') {
-      items = items.filter((entry) => entry.category === category);
+      const selectedCategory = normalize(category);
+      items = items.filter((entry) => normalize(entry.category) === selectedCategory);
     }
     if (district !== 'All') {
-      items = items.filter((entry) => entry.district === district);
+      const selectedDistrict = normalize(district);
+      items = items.filter((entry) => normalize(entry.district) === selectedDistrict);
     }
     switch (feedMode) {
       case 'votes':
@@ -54,7 +69,7 @@ export default function HomePage() {
       case 'recent':
         return items.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
       case 'completed':
-        return items.filter((entry) => entry.status === 'Completed').sort((a, b) => b.trendScore - a.trendScore);
+        return items.filter((entry) => entry.status === 'Completed').sort((a, b) => b.votes - a.votes || b.trendScore - a.trendScore);
       default:
         return items.sort((a, b) => b.trendScore - a.trendScore);
     }
@@ -254,7 +269,10 @@ export default function HomePage() {
                   key={option}
                   variant={category === option ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setCategory(option)}
+                  onClick={() => {
+                    setCategory(option);
+                    showPopup('Sector filter applied', option === 'All' ? 'Showing every sector.' : `Showing ${option} promises.`, 'success');
+                  }}
                   className={category === option ? 'animate-pulse' : 'hover:bg-white/10'}
                 >
                   {option}
@@ -274,7 +292,10 @@ export default function HomePage() {
                   key={option}
                   variant={district === option ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setDistrict(option)}
+                  onClick={() => {
+                    setDistrict(option);
+                    showPopup('Place filter applied', option === 'All' ? 'Showing every district.' : `Showing promises from ${option}.`, 'success');
+                  }}
                   className={district === option ? 'animate-pulse' : 'hover:bg-white/10'}
                 >
                   {option}
@@ -288,7 +309,10 @@ export default function HomePage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={clearFilters}
+                onClick={() => {
+                  clearFilters();
+                  showPopup('Filters cleared', 'Sector, place, and sort reset to default.', 'success');
+                }}
                 className="text-xs"
               >
                 Clear all filters
@@ -315,7 +339,10 @@ export default function HomePage() {
                     key={value}
                     variant={feedMode === value ? 'default' : 'ghost'}
                     size="sm"
-                    onClick={() => setFeedMode(value as typeof feedMode)}
+                    onClick={() => {
+                      setFeedMode(value as typeof feedMode);
+                      showPopup('Sort applied', `${label} order is now active.`, 'success');
+                    }}
                     className={feedMode === value ? 'animate-pulse' : 'hover:bg-white/10'}
                   >
                     <ArrowUpDown size={14} /> {label}
@@ -332,7 +359,10 @@ export default function HomePage() {
               )}
               {filtered.map((item, index) => (
                 <motion.div key={item.id} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.03 }}>
-                  <PromiseCard promise={item} />
+                  <PromiseCard
+                    promise={item}
+                    onFeedback={(feedback) => showPopup(feedback.title, feedback.message, feedback.variant)}
+                  />
                 </motion.div>
               ))}
               {filtered.length === 0 && (
@@ -378,6 +408,13 @@ export default function HomePage() {
           </aside>
         </section>
       </main>
+      <MessagePopup
+        open={popup.open}
+        title={popup.title}
+        message={popup.message}
+        variant={popup.variant}
+        onClose={() => setPopup((current) => ({ ...current, open: false }))}
+      />
     </div>
   );
 }

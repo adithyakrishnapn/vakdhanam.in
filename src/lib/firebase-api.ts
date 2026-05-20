@@ -167,11 +167,13 @@ export async function castReaction(input: { promiseId: string; participantId: st
     };
     if (input.reaction === 'like') {
       update['likes'] = increment(1);
+      update['trendScore'] = increment(1);
       if (existingReaction?.reaction === 'dislike') {
         update['dislikes'] = increment(-1);
       }
     } else {
       update['dislikes'] = increment(1);
+      update['trendScore'] = increment(1);
       if (existingReaction?.reaction === 'like') {
         update['likes'] = increment(-1);
       }
@@ -231,6 +233,7 @@ export async function castVote(input: { promiseId: string; participantId: string
     });
     transaction.update(promiseRef, {
       votes: increment(1),
+      trendScore: increment(4),
       updatedAt: serverTimestamp(),
     });
     transaction.set(pollRef, {
@@ -267,6 +270,7 @@ export async function submitComment(input: { promiseId: string; content: string;
     });
     transaction.update(promiseRef, {
       commentsCount: increment(1),
+      trendScore: increment(1),
       updatedAt: serverTimestamp(),
     });
   });

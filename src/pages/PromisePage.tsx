@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { MessagePopup } from '@/components/ui/message-popup';
 import { formatCompactNumber, formatRelativeTime } from '@/lib/format';
 import { sanitizeText } from '@/lib/sanitize';
 import { fetchPromiseCommentsOnce, fetchPromiseOnce, subscribePromiseById, subscribePromiseComments } from '@/lib/firebase-api';
@@ -30,6 +31,12 @@ export default function PromisePage() {
   const [enrichedScreenshotUrl, setEnrichedScreenshotUrl] = useState<string | null>(null);
   const [showMemeReacts, setShowMemeReacts] = useState(false);
   const [animatingButton, setAnimatingButton] = useState<string | null>(null);
+  const [popup, setPopup] = useState<{ open: boolean; title: string; message: string; variant: 'success' | 'error' | 'info' }>({
+    open: false,
+    title: '',
+    message: '',
+    variant: 'info',
+  });
 
   const memeEmojis = ['😂', '🤦', '😤', '😡', '🙄', '😒', '👏', '🎉', '❤️', '🔥', '💯', '👌'];
 
@@ -38,10 +45,18 @@ export default function PromisePage() {
     return `${promise.progress}% complete, ${promise.status.toLowerCase()} on paper and in public memory`;
   }, [promise]);
 
-  const handleAnimatedClick = async (buttonId: string, action: () => Promise<void>) => {
+  const handleAnimatedClick = async (buttonId: string, action: () => Promise<void>, successTitle: string, successMessage: string) => {
     setAnimatingButton(buttonId);
     try {
       await action();
+      setPopup({ open: true, title: successTitle, message: successMessage, variant: 'success' });
+    } catch (cause) {
+      setPopup({
+        open: true,
+        title: `${successTitle} failed`,
+        message: cause instanceof Error ? cause.message : 'Please try again.',
+        variant: 'error',
+      });
     } finally {
       setTimeout(() => setAnimatingButton(null), 600);
     }
@@ -65,14 +80,12 @@ export default function PromisePage() {
     } else {
       // Fallback: copy to clipboard
       await navigator.clipboard.writeText(`${text}\n${url}`);
-      alert('Link copied to clipboard!');
     }
   };
 
   const handleMemeReact = async (emoji: string) => {
-    console.log('Meme react:', emoji);
     setShowMemeReacts(false);
-    // Here you could add actual tracking of meme reactions to Firebase if needed
+    setPopup({ open: true, title: 'Reaction sent', message: `Sent ${emoji} to this promise.`, variant: 'success' });
   };
 
   useEffect(() => {
@@ -184,7 +197,7 @@ export default function PromisePage() {
         <Button variant="ghost" onClick={() => navigate(-1)}><ArrowLeft size={16} /> Back</Button>
         <Button
           variant="outline"
-          onClick={() => handleAnimatedClick('share', handleShare)}
+          onClick={() => handleAnimatedClick('share', handleShare, 'Shared', 'Share link copied or shared successfully.')}
           className={animatingButton === 'share' ? 'animate-bounce' : ''}
         >
           <Share2 size={16} /> Share card
@@ -280,21 +293,21 @@ export default function PromisePage() {
           <CardFooter className="flex flex-wrap justify-between gap-3">
             <div className="flex gap-2">
               <Button
-                onClick={() => handleAnimatedClick('like', () => likePromise(promise.id))}
+                onClick={() => handleAnimatedClick('like', () => likePromise(promise.id), 'Liked', 'Your like was recorded.')}
                 className={animatingButton === 'like' ? 'animate-pulse' : ''}
               >
                 <ArrowUp size={16} /> Like
               </Button>
               <Button
                 variant="outline"
-                onClick={() => handleAnimatedClick('dislike', () => dislikePromise(promise.id))}
+                onClick={() => handleAnimatedClick('dislike', () => dislikePromise(promise.id), 'Disliked', 'Your dislike was recorded.')}
                 className={animatingButton === 'dislike' ? 'animate-pulse' : ''}
               >
                 <ArrowDown size={16} /> Dislike
               </Button>
               <Button
                 variant="outline"
-                onClick={() => handleAnimatedClick('vote', () => votePromise(promise.id))}
+                onClick={() => handleAnimatedClick('vote', () => votePromise(promise.id), 'Vote counted', 'Your vote was recorded.')}
                 className={animatingButton === 'vote' ? 'animate-bounce' : ''}
               >
                 <Vote size={16} /> Vote
@@ -321,7 +334,7 @@ export default function PromisePage() {
                       {memeEmojis.map((emoji) => (
                         <button
                           key={emoji}
-                          onClick={() => handleMemeReact(emoji)}
+                          onClick={() => void handleMemeReact(emoji)}
                           className="text-lg transition hover:scale-125 active:scale-150 duration-100"
                         >
                           {emoji}
@@ -351,9 +364,19 @@ export default function PromisePage() {
                 <span>{profile ? `Posting as ${profile.username}` : 'Posting anonymously with a stable local identity.'}</span>
                 <Button
                   size="sm"
-                  onClick={() => {
-                    addComment({ promiseId: promise.id, content: sanitizeText(content) });
-                    setContent('');
+                  onClick={async () => {
+                    try {
+                      await addComment({ promiseId: promise.id, content: sanitizeText(content) });
+                      setContent('');
+                      setPopup({ open: true, title: 'Comment posted', message: 'Your comment is now visible.', variant: 'success' });
+                    } catch (cause) {
+                      setPopup({
+                        open: true,
+                        title: 'Comment failed',
+                        message: cause instanceof Error ? cause.message : 'Please try again.',
+                        variant: 'error',
+                      });
+                    }
                   }}
                   disabled={!content.trim()}
                 >
@@ -401,6 +424,13 @@ export default function PromisePage() {
           />
         </div>
       )}
+      <MessagePopup
+        open={popup.open}
+        title={popup.title}
+        message={popup.message}
+        variant={popup.variant}
+        onClose={() => setPopup((current) => ({ ...current, open: false }))}
+      />
     </div>
   );
 }

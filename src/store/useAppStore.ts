@@ -161,6 +161,7 @@ export const useAppStore = create<AppState>()(
       setFeedMode: (feedMode) => set({ feedMode }),
       setAuthSessionDisplayName: (displayName) => set((state) => state.authSession ? { authSession: { ...state.authSession, displayName } } : state),
       clearFilters: () => set({ search: '', category: 'All', district: 'All', feedMode: 'trending' }),
+      
       upsertProfile: (input) => {
         const profile = buildProfile(input);
         set({ profile });
@@ -170,19 +171,47 @@ export const useAppStore = create<AppState>()(
       likePromise: async (id) => {
         const participantId = get().authSession?.uid ?? get().profile?.id ?? get().reactionIdentityId;
         await callCastReaction({ promiseId: id, participantId, reaction: 'like' });
+        set((state) => ({
+          promises: state.promises.map((promise) => (
+            promise.id === id
+              ? { ...promise, likes: promise.likes + 1, trendScore: promise.trendScore + 1 }
+              : promise
+          )),
+        }));
       },
       dislikePromise: async (id) => {
         const participantId = get().authSession?.uid ?? get().profile?.id ?? get().reactionIdentityId;
         await callCastReaction({ promiseId: id, participantId, reaction: 'dislike' });
+        set((state) => ({
+          promises: state.promises.map((promise) => (
+            promise.id === id
+              ? { ...promise, dislikes: promise.dislikes + 1, trendScore: promise.trendScore + 1 }
+              : promise
+          )),
+        }));
       },
       votePromise: async (id) => {
         const participantId = get().authSession?.uid ?? get().profile?.id ?? get().reactionIdentityId;
         await callCastVote({ promiseId: id, participantId });
+        set((state) => ({
+          promises: state.promises.map((promise) => (
+            promise.id === id
+              ? { ...promise, votes: promise.votes + 1, trendScore: promise.trendScore + 4 }
+              : promise
+          )),
+        }));
       },
       addComment: async ({ promiseId, content }) => {
         const safe = sanitizeText(commentSchema.parse({ promiseId, content }).content);
         const participantId = get().authSession?.uid ?? get().profile?.id ?? get().reactionIdentityId;
         await callSubmitComment({ promiseId, content: safe, participantId });
+        set((state) => ({
+          promises: state.promises.map((promise) => (
+            promise.id === promiseId
+              ? { ...promise, commentsCount: promise.commentsCount + 1, trendScore: promise.trendScore + 1 }
+              : promise
+          )),
+        }));
       },
       submitPromise: async (payload) => {
         if (!get().authSession) {
