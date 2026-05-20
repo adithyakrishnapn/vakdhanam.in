@@ -3,7 +3,6 @@ import { getAuth, GoogleAuthProvider, EmailAuthProvider, connectAuthEmulator, ty
 import { getFirestore, connectFirestoreEmulator, type Firestore } from 'firebase/firestore';
 import { getAnalytics, isSupported, type Analytics } from 'firebase/analytics';
 import { getFunctions, connectFunctionsEmulator, type Functions } from 'firebase/functions';
-import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -19,33 +18,9 @@ let auth: Auth | undefined;
 let db: Firestore | undefined;
 let functions: Functions | undefined;
 let analytics: Analytics | undefined;
-let appCheckInitialized = false;
 
-function initializeAppCheckIfNeeded(appInstance: FirebaseApp) {
-  if (appCheckInitialized) {
-    return;
-  }
-
-  const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-  if (isLocalhost) {
-    return;
-  }
-
-  const siteKey = import.meta.env['VITE_FIREBASE_APPCHECK_SITE_KEY'];
-  if (!siteKey) {
-    return;
-  }
-
-  if (import.meta.env.DEV && import.meta.env['VITE_FIREBASE_APPCHECK_DEBUG_TOKEN']) {
-    (self as typeof self & { FIREBASE_APPCHECK_DEBUG_TOKEN?: string | boolean }).FIREBASE_APPCHECK_DEBUG_TOKEN =
-      import.meta.env['VITE_FIREBASE_APPCHECK_DEBUG_TOKEN'];
-  }
-
-  initializeAppCheck(appInstance, {
-    provider: new ReCaptchaV3Provider(siteKey),
-    isTokenAutoRefreshEnabled: true,
-  });
-  appCheckInitialized = true;
+function shouldUseAppCheck() {
+  return import.meta.env['VITE_FIREBASE_ENABLE_APPCHECK'] === 'true';
 }
 
 export function getFirebaseApp() {
@@ -59,7 +34,10 @@ export function getFirebaseApp() {
     auth = getAuth(existingApp);
     db = getFirestore(existingApp);
     functions = getFunctions(existingApp);
-    initializeAppCheckIfNeeded(existingApp);
+    if (shouldUseAppCheck() && import.meta.env.DEV && import.meta.env['VITE_FIREBASE_APPCHECK_DEBUG_TOKEN']) {
+      (self as typeof self & { FIREBASE_APPCHECK_DEBUG_TOKEN?: string | boolean }).FIREBASE_APPCHECK_DEBUG_TOKEN =
+        import.meta.env['VITE_FIREBASE_APPCHECK_DEBUG_TOKEN'];
+    }
     return app;
   }
 
@@ -71,7 +49,10 @@ export function getFirebaseApp() {
   auth = getAuth(app);
   db = getFirestore(app);
   functions = getFunctions(app);
-  initializeAppCheckIfNeeded(app);
+  if (shouldUseAppCheck() && import.meta.env.DEV && import.meta.env['VITE_FIREBASE_APPCHECK_DEBUG_TOKEN']) {
+    (self as typeof self & { FIREBASE_APPCHECK_DEBUG_TOKEN?: string | boolean }).FIREBASE_APPCHECK_DEBUG_TOKEN =
+      import.meta.env['VITE_FIREBASE_APPCHECK_DEBUG_TOKEN'];
+  }
 
   if (import.meta.env.DEV && import.meta.env.VITE_FIREBASE_USE_EMULATORS === 'true') {
     connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });

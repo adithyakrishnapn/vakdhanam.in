@@ -1,6 +1,5 @@
-import { httpsCallable } from 'firebase/functions';
-import { collection, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore';
-import { getFirebaseDb, getFirebaseFunctions } from './firebase';
+import { collection, deleteDoc, doc, getDoc, getDocs, increment, limit, onSnapshot, orderBy, query, runTransaction, serverTimestamp, setDoc, updateDoc, where } from 'firebase/firestore';
+import { getFirebaseAuth, getFirebaseDb } from './firebase';
 import { mapCommentDocument, mapPollDocument, mapPromiseDocument, mapSubmissionDocument } from './firestore-mappers';
 import type { CommentItem, PollItem, PromiseItem, SubmissionItem } from '@/types';
 
@@ -136,97 +135,223 @@ export async function fetchPromiseCommentsOnce(promiseId: string) {
 }
 
 export async function castReaction(input: { promiseId: string; participantId: string; reaction: 'like' | 'dislike' }) {
-  const functions = getFirebaseFunctions();
-  if (!functions) {
-    throw new Error('Firebase Functions are not available');
+  const db = getFirebaseDb();
+  if (!db) {
+    throw new Error('Firebase is not available');
   }
 
-  const callable = httpsCallable(functions, 'castReaction');
-  await callable(input);
+  const participantId = getFirebaseAuth()?.currentUser?.uid ?? input.participantId;
+  const promiseRef = doc(db, 'promises', input.promiseId);
+  const reactionRef = doc(db, 'reactions', `${input.promiseId}_${participantId}`);
+
+  await runTransaction(db, async (transaction) => {
+    const promiseSnapshot = await transaction.get(promiseRef);
+    if (!promiseSnapshot.exists()) {
+      throw new Error('Promise not found');
+    }
+
+    const reactionSnapshot = await transaction.get(reactionRef);
+    const existingReaction = reactionSnapshot.exists() ? (reactionSnapshot.data() as { reaction?: 'like' | 'dislike' }) : null;
+    if (existingReaction?.reaction === input.reaction) {
+      throw new Error('Duplicate reaction');
+    }
+
+    const update: Record<string, unknown> = {
+      updatedAt: serverTimestamp(),
+    };
+    if (input.reaction === 'like') {
+      update['likes'] = increment(1);
+      if (existingReaction?.reaction === 'dislike') {
+        update['dislikes'] = increment(-1);
+      }
+    } else {
+      update['dislikes'] = increment(1);
+      if (existingReaction?.reaction === 'like') {
+        update['likes'] = increment(-1);
+      }
+    }
+
+    transaction.set(reactionRef, {
+      promiseId: input.promiseId,
+      participantId,
+      reaction: input.reaction,
+      createdAt: reactionSnapshot.exists() ? (reactionSnapshot.data() as { createdAt?: unknown })['createdAt'] ?? serverTimestamp() : serverTimestamp(),
+    }, { merge: true });
+    transaction.update(promiseRef, update);
+  });
 }
 
 export async function registerLightweightProfile(input?: { username?: string; email?: string; avatar?: 'sage' | 'mango' | 'rocket' | 'wave' | 'radio' | 'lotus'; participantId?: string }) {
-  const functions = getFirebaseFunctions();
-  if (!functions) {
-    throw new Error('Firebase Functions are not available');
+  const db = getFirebaseDb();
+  const auth = getFirebaseAuth();
+  const participantId = auth?.currentUser?.uid ?? input?.participantId;
+  if (!db || !participantId) {
+    throw new Error('Authentication is not ready');
   }
 
-  const callable = httpsCallable(functions, 'registerLightweightProfile');
-  const response = await callable({
-    username: input?.username ?? 'Anonymous',
-    email: input?.email ?? '',
+  const profile = {
+    id: participantId,
+    username: (input?.username ?? 'Anonymous').replace(/<[^>]*>/g, '').trim(),
+    email: (input?.email ?? '').toLowerCase(),
     avatar: input?.avatar ?? 'wave',
-    participantId: input?.participantId,
-  });
-  return response.data as { ok: true; profile: { id: string; username: string; email: string; avatar: 'sage' | 'mango' | 'rocket' | 'wave' | 'radio' | 'lotus'; createdAt: string; role: string; emailVerified: boolean } };
+    createdAt: new Date().toISOString(),
+    role: 'visitor',
+    emailVerified: false,
+  } as const;
+
+  await setDoc(doc(db, 'users', participantId), profile, { merge: true });
+  return { ok: true, profile };
 }
 
 export async function castVote(input: { promiseId: string; participantId: string }) {
-  const functions = getFirebaseFunctions();
-  if (!functions) {
-    throw new Error('Firebase Functions are not available');
+  const db = getFirebaseDb();
+  if (!db) {
+    throw new Error('Firebase is not available');
   }
 
-  const callable = httpsCallable(functions, 'castVote');
-  await callable(input);
+  const participantId = getFirebaseAuth()?.currentUser?.uid ?? input.participantId;
+  const voteRef = doc(db, 'votes', `${input.promiseId}_${participantId}`);
+  const promiseRef = doc(db, 'promises', input.promiseId);
+  const pollRef = doc(db, 'polls', input.promiseId);
+
+  await runTransaction(db, async (transaction) => {
+    const voteSnapshot = await transaction.get(voteRef);
+    const promiseSnapshot = await transaction.get(promiseRef);
+    if (!promiseSnapshot.exists()) {
+      throw new Error('Promise not found');
+    }
+    if (voteSnapshot.exists()) {
+      throw new Error('Vote already recorded for this promise');
+    }
+
+    transaction.set(voteRef, {
+      promiseId: input.promiseId,
+      participantId,
+      createdAt: serverTimestamp(),
+    });
+    transaction.update(promiseRef, {
+      votes: increment(1),
+      updatedAt: serverTimestamp(),
+    });
+    transaction.set(pollRef, {
+      promiseId: input.promiseId,
+      totalVotes: increment(1),
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+  });
 }
 
 export async function submitComment(input: { promiseId: string; content: string; participantId: string }) {
-  const functions = getFirebaseFunctions();
-  if (!functions) {
-    throw new Error('Firebase Functions are not available');
+  const db = getFirebaseDb();
+  if (!db) {
+    throw new Error('Firebase is not available');
   }
 
-  const callable = httpsCallable(functions, 'submitComment');
-  await callable(input);
+  const participantId = getFirebaseAuth()?.currentUser?.uid ?? input.participantId;
+  const commentRef = doc(collection(db, 'comments'));
+  const promiseRef = doc(db, 'promises', input.promiseId);
+
+  await runTransaction(db, async (transaction) => {
+    const promiseSnapshot = await transaction.get(promiseRef);
+    if (!promiseSnapshot.exists()) {
+      throw new Error('Promise not found');
+    }
+
+    transaction.set(commentRef, {
+      id: commentRef.id,
+      promiseId: input.promiseId,
+      userId: participantId,
+      content: input.content.trim(),
+      likes: 0,
+      createdAt: serverTimestamp(),
+    });
+    transaction.update(promiseRef, {
+      commentsCount: increment(1),
+      updatedAt: serverTimestamp(),
+    });
+  });
 }
 
 export async function deleteOwnComment(input: { commentId: string }) {
-  const functions = getFirebaseFunctions();
-  if (!functions) {
-    throw new Error('Backend functions are not available');
+  const db = getFirebaseDb();
+  if (!db) {
+    throw new Error('Firebase is not available');
   }
 
-  const callable = httpsCallable(functions, 'deleteOwnComment');
-  await callable(input);
+  await deleteDoc(doc(db, 'comments', input.commentId));
 }
 
 export async function deleteOwnSubmission(input: { submissionId: string }) {
-  const functions = getFirebaseFunctions();
-  if (!functions) {
-    throw new Error('Backend functions are not available');
+  const db = getFirebaseDb();
+  if (!db) {
+    throw new Error('Firebase is not available');
   }
 
-  const callable = httpsCallable(functions, 'deleteOwnSubmission');
-  await callable(input);
+  await deleteDoc(doc(db, 'submissions', input.submissionId));
 }
 
 export async function submitPromise(input: unknown) {
-  const functions = getFirebaseFunctions();
-  if (!functions) {
-    throw new Error('Firebase Functions are not available');
+  const db = getFirebaseDb();
+  const auth = getFirebaseAuth();
+  const userId = auth?.currentUser?.uid;
+  if (!db || !userId) {
+    throw new Error('Login required for submissions');
   }
 
-  const callable = httpsCallable(functions, 'submitPromise');
-  await callable(input);
+  const parsed = input as {
+    title: string;
+    description: string;
+    sourceLink: string;
+    electionYear: number;
+    category: 'Health' | 'Education' | 'Infrastructure' | 'Jobs' | 'Transport' | 'Environment' | 'Welfare' | 'Governance';
+    district: string;
+    screenshotUrl?: string | null;
+  };
+
+  const submissionRef = doc(collection(db, 'submissions'));
+  await setDoc(submissionRef, {
+    id: submissionRef.id,
+    title: parsed.title.trim(),
+    description: parsed.description.trim(),
+    sourceLink: parsed.sourceLink.trim(),
+    electionYear: parsed.electionYear,
+    category: parsed.category,
+    district: parsed.district.trim(),
+    screenshotUrl: parsed.screenshotUrl ?? null,
+    createdBy: userId,
+    status: 'Pending Review',
+    createdAt: serverTimestamp(),
+  });
 }
 
 export async function adminUpdatePromise(input: { promiseId: string; status: 'Pending' | 'In Progress' | 'Completed' | 'Failed'; progress: number; pinned?: boolean }) {
-  const functions = getFirebaseFunctions();
-  if (!functions) {
-    throw new Error('Firebase Functions are not available');
+  const db = getFirebaseDb();
+  if (!db) {
+    throw new Error('Firebase is not available');
   }
 
-  const callable = httpsCallable(functions, 'adminUpdatePromise');
-  await callable(input);
+  await updateDoc(doc(db, 'promises', input.promiseId), {
+    status: input.status,
+    progress: input.progress,
+    pinned: input.pinned ?? undefined,
+    updatedAt: serverTimestamp(),
+  });
 }
 
 export async function adminDeleteComment(input: { commentId: string; promiseId: string }) {
-  const functions = getFirebaseFunctions();
-  if (!functions) {
-    throw new Error('Firebase Functions are not available');
+  const db = getFirebaseDb();
+  if (!db) {
+    throw new Error('Firebase is not available');
   }
 
-  const callable = httpsCallable(functions, 'adminDeleteComment');
-  await callable(input);
+  const commentRef = doc(db, 'comments', input.commentId);
+  const promiseRef = doc(db, 'promises', input.promiseId);
+
+  await runTransaction(db, async (transaction) => {
+    transaction.delete(commentRef);
+    transaction.update(promiseRef, {
+      commentsCount: increment(-1),
+      updatedAt: serverTimestamp(),
+    });
+  });
 }

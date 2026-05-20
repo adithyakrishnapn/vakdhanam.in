@@ -1,2 +1,0 @@
-import{A as o,p as a}from"./index-CFI1a7bP.js";import{c as s}from"./card-BChubI_V.js";const n=o.forwardRef(({className:e,...r},t)=>a.jsx("textarea",{ref:t,className:s("min-h-[120px] w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-foreground outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/40 placeholder:text-white/35",e),...r}));n.displayName="Textarea";export{n as T};
-//# sourceMappingURL=textarea-BCYVoeva.js.map
