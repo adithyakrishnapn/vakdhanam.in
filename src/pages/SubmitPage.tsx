@@ -32,7 +32,7 @@ export default function SubmitPage() {
       description: '',
       sourceLink: '',
       screenshotUrl: '',
-      electionYear: 2021,
+      electionYear: 2026,
       category: 'Governance',
       district: 'Thiruvananthapuram',
     },

@@ -23,13 +23,21 @@ export const categories = [
 
 export const districts = [
   'All',
+  'Kerala',
   'Thiruvananthapuram',
   'Kollam',
-  'Kozhikode',
-  'Ernakulam',
-  'Kannur',
   'Pathanamthitta',
   'Alappuzha',
+  'Kottayam',
+  'Idukki',
+  'Ernakulam',
+  'Thrissur',
+  'Palakkad',
+  'Malappuram',
+  'Kozhikode',
+  'Wayanad',
+  'Kannur',
+  'Kasaragod',
 ] as const;
 
 export const mockPromises: PromiseItem[] = [
