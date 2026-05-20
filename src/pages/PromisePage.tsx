@@ -10,6 +10,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { formatCompactNumber, formatRelativeTime } from '@/lib/format';
 import { sanitizeText } from '@/lib/sanitize';
 import { fetchPromiseCommentsOnce, fetchPromiseOnce, subscribePromiseById, subscribePromiseComments } from '@/lib/firebase-api';
+import { doc, getDoc } from 'firebase/firestore';
+import { getFirebaseDb } from '@/lib/firebase';
 import type { PromiseItem, CommentItem } from '@/types';
 
 export default function PromisePage() {

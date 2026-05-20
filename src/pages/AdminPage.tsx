@@ -17,6 +17,7 @@ import {
   adminRejectSubmission,
   adminUpdatePromise,
   adminUpdateSubmission,
+  adminSyncMissingEvidence,
 } from '@/lib/firebase-api';
 import { getFirebaseDb } from '@/lib/firebase';
 import { mapCommentDocument, mapPromiseDocument, mapSubmissionDocument } from '@/lib/firestore-mappers';
@@ -29,6 +30,7 @@ export default function AdminPage() {
   const [comments, setComments] = useState<CommentItem[]>([]);
   const [busyAction, setBusyAction] = useState('');
   const [editingSubmission, setEditingSubmission] = useState<SubmissionItem | null>(null);
+  const [editingPromise, setEditingPromise] = useState<PromiseItem | null>(null);
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const [popup, setPopup] = useState<{ open: boolean; title: string; message: string; variant: 'success' | 'error' | 'info' }>({
     open: false,
@@ -423,25 +425,249 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {promises.map((entry) => (
-                  <div key={entry.id} className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <Badge>{entry.status}</Badge>
-                        <h2 className="mt-3 text-xl font-bold">{entry.title}</h2>
-                      </div>
-                      <BarChart3 className="text-accent" />
-                    </div>
-                    <p className="mt-3 text-sm leading-7 text-white/65">{entry.description}</p>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <Button variant="outline" size="sm" onClick={() => adminUpdatePromise({ promiseId: entry.id, status: 'In Progress', progress: Math.max(entry.progress, 35), pinned: entry.pinned })}><CheckCircle2 size={14} /> Progress</Button>
-                      <Button variant="outline" size="sm" onClick={() => adminUpdatePromise({ promiseId: entry.id, status: 'Completed', progress: 100, pinned: entry.pinned })}><CheckCircle2 size={14} /> Complete</Button>
-                      <Button variant="outline" size="sm" onClick={() => adminUpdatePromise({ promiseId: entry.id, status: 'Failed', progress: entry.progress, pinned: entry.pinned })}><Ban size={14} /> Fail</Button>
-                      <Button variant="outline" size="sm" onClick={() => adminUpdatePromise({ promiseId: entry.id, status: entry.status, progress: entry.progress, pinned: !entry.pinned })}><Pin size={14} /> Pin</Button>
-                    </div>
+              <div className="space-y-4 pt-6 border-t border-white/10">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.3em] text-white/45">Published promises</p>
+                    <h2 className="text-2xl font-bold">Active live promises in feed</h2>
                   </div>
-                ))}
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={busyAction === 'sync-evidence'}
+                      onClick={() => runAdminAction(
+                        'sync-evidence',
+                        async () => {
+                          const count = await adminSyncMissingEvidence();
+                          setPopup({
+                            open: true,
+                            title: 'Sync completed',
+                            message: `Successfully backfilled proof evidence for ${count} promise(s).`,
+                            variant: 'success'
+                          });
+                        },
+                        'Sync completed',
+                        'Proof evidence has been backfilled.',
+                      )}
+                      className="bg-accent/15 text-accent border-accent/30 hover:bg-accent/25"
+                    >
+                      {busyAction === 'sync-evidence' ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                      Sync Evidence from Submissions
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {promises.map((entry) => {
+                    const isEditing = editingPromise?.id === entry.id;
+
+                    if (isEditing) {
+                      return (
+                        <div key={entry.id} className="rounded-3xl border border-brand-yellow/30 bg-white/[0.04] p-5 space-y-4 col-span-1 md:col-span-2 xl:col-span-3">
+                          <div className="text-xs uppercase tracking-[0.28em] text-brand-yellow font-semibold">Editing Live Promise Details</div>
+                          
+                          <div className="grid gap-4 md:grid-cols-2">
+                            <div className="space-y-1">
+                              <label className="text-xs text-white/50 font-medium">Title</label>
+                              <input
+                                type="text"
+                                value={editingPromise.title}
+                                onChange={(e) => setEditingPromise({ ...editingPromise, title: e.target.value })}
+                                className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-brand-yellow focus:outline-none"
+                              />
+                            </div>
+
+                            <div className="space-y-1">
+                              <label className="text-xs text-white/50 font-medium">District</label>
+                              <input
+                                type="text"
+                                value={editingPromise.district}
+                                onChange={(e) => setEditingPromise({ ...editingPromise, district: e.target.value })}
+                                className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-brand-yellow focus:outline-none"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-xs text-white/50 font-medium">Description</label>
+                            <textarea
+                              value={editingPromise.description}
+                              onChange={(e) => setEditingPromise({ ...editingPromise, description: e.target.value })}
+                              rows={3}
+                              className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-brand-yellow focus:outline-none min-h-[80px] resize-none"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="space-y-1">
+                              <label className="text-xs text-white/50 font-medium">Category</label>
+                              <select
+                                value={editingPromise.category}
+                                onChange={(e) => setEditingPromise({ ...editingPromise, category: e.target.value as any })}
+                                className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-brand-yellow focus:outline-none"
+                              >
+                                {['Health', 'Education', 'Infrastructure', 'Jobs', 'Transport', 'Environment', 'Welfare', 'Governance'].map((cat) => (
+                                  <option key={cat} value={cat} className="bg-neutral-900 text-white">{cat}</option>
+                                ))}
+                              </select>
+                            </div>
+
+                            <div className="space-y-1">
+                              <label className="text-xs text-white/50 font-medium">Election Year</label>
+                              <input
+                                type="number"
+                                value={editingPromise.electionYear}
+                                onChange={(e) => setEditingPromise({ ...editingPromise, electionYear: parseInt(e.target.value) || 2021 })}
+                                className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-brand-yellow focus:outline-none"
+                              />
+                            </div>
+
+                            <div className="space-y-1">
+                              <label className="text-xs text-white/50 font-medium">Status</label>
+                              <select
+                                value={editingPromise.status}
+                                onChange={(e) => setEditingPromise({ ...editingPromise, status: e.target.value as any })}
+                                className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-brand-yellow focus:outline-none"
+                              >
+                                {['Pending', 'In Progress', 'Completed', 'Failed'].map((status) => (
+                                  <option key={status} value={status} className="bg-neutral-900 text-white">{status}</option>
+                                ))}
+                              </select>
+                            </div>
+
+                            <div className="space-y-1">
+                              <label className="text-xs text-white/50 font-medium">Progress ({editingPromise.progress}%)</label>
+                              <input
+                                type="range"
+                                min="0"
+                                max="100"
+                                value={editingPromise.progress}
+                                onChange={(e) => setEditingPromise({ ...editingPromise, progress: parseInt(e.target.value) || 0 })}
+                                className="w-full h-10 accent-brand-yellow animate-none"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid gap-4 md:grid-cols-2">
+                            <div className="space-y-1">
+                              <label className="text-xs text-white/50 font-medium">Source Proof Link</label>
+                              <input
+                                type="text"
+                                value={editingPromise.sourceLink || ''}
+                                onChange={(e) => setEditingPromise({ ...editingPromise, sourceLink: e.target.value })}
+                                className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-brand-yellow focus:outline-none"
+                              />
+                            </div>
+
+                            <div className="space-y-1">
+                              <label className="text-xs text-white/50 font-medium">Screenshot / Evidence Image URL</label>
+                              <input
+                                type="text"
+                                value={editingPromise.screenshotUrl || ''}
+                                onChange={(e) => setEditingPromise({ ...editingPromise, screenshotUrl: e.target.value })}
+                                className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-brand-yellow focus:outline-none"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="mt-4 flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={busyAction === `promise-save-${entry.id}`}
+                              onClick={() => runAdminAction(
+                                `promise-save-${entry.id}`,
+                                async () => {
+                                  await adminUpdatePromise({
+                                    promiseId: editingPromise.id,
+                                    title: editingPromise.title,
+                                    description: editingPromise.description,
+                                    category: editingPromise.category,
+                                    district: editingPromise.district,
+                                    electionYear: editingPromise.electionYear,
+                                    sourceLink: editingPromise.sourceLink,
+                                    screenshotUrl: editingPromise.screenshotUrl || null,
+                                    status: editingPromise.status,
+                                    progress: editingPromise.progress,
+                                    pinned: editingPromise.pinned,
+                                  });
+                                  setEditingPromise(null);
+                                },
+                                'Promise updated',
+                                'The promise details have been successfully updated.',
+                              )}
+                              className="bg-brand-yellow/15 text-brand-yellow border-brand-yellow/30 hover:bg-brand-yellow/25"
+                            >
+                              {busyAction === `promise-save-${entry.id}` ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                              Save Changes
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={busyAction === `promise-save-${entry.id}`}
+                              onClick={() => setEditingPromise(null)}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div key={entry.id} className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 flex flex-col justify-between h-full hover:border-white/20 transition-all duration-300">
+                        <div className="space-y-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <Badge>{entry.status}</Badge>
+                              {entry.pinned && <Badge className="ml-2 bg-brand-yellow/10 text-brand-yellow border-brand-yellow/20">Pinned</Badge>}
+                              <h3 className="mt-3 text-xl font-bold leading-tight">{entry.title}</h3>
+                            </div>
+                            <BarChart3 className="text-accent shrink-0" />
+                          </div>
+                          
+                          <p className="text-sm leading-7 text-white/65 line-clamp-3">{entry.description}</p>
+
+                          {(entry.sourceLink || entry.screenshotUrl) && (
+                            <div className="space-y-2 rounded-2xl border border-white/5 bg-white/[0.02] p-3 text-xs">
+                              {entry.sourceLink && (
+                                <div className="flex items-center gap-1.5">
+                                  <Link2 size={12} className="text-accent shrink-0" />
+                                  <span className="text-white/40">Proof:</span>
+                                  <a href={entry.sourceLink} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline truncate">{entry.sourceLink}</a>
+                                </div>
+                              )}
+                              {entry.screenshotUrl && (
+                                <div className="flex items-center gap-1.5">
+                                  <ImageIcon size={12} className="text-brand-yellow shrink-0" />
+                                  <span className="text-white/40">Evidence Screenshot Attached</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          <div className="flex flex-wrap gap-1.5 text-[11px] text-white/45">
+                            <span className="rounded-full bg-white/5 px-2.5 py-0.5">{entry.category}</span>
+                            <span className="rounded-full bg-white/5 px-2.5 py-0.5">{entry.district}</span>
+                            <span className="rounded-full bg-white/5 px-2.5 py-0.5">{entry.electionYear}</span>
+                            <span className="rounded-full bg-white/5 px-2.5 py-0.5 font-medium text-brand-yellow">{entry.progress}% progress</span>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 pt-3 border-t border-white/5 flex flex-wrap gap-1.5">
+                          <Button variant="outline" size="sm" className="h-8 text-[11px] px-2.5" onClick={() => adminUpdatePromise({ promiseId: entry.id, status: 'In Progress', progress: Math.max(entry.progress, 35), pinned: entry.pinned })}><CheckCircle2 size={12} /> Progress</Button>
+                          <Button variant="outline" size="sm" className="h-8 text-[11px] px-2.5" onClick={() => adminUpdatePromise({ promiseId: entry.id, status: 'Completed', progress: 100, pinned: entry.pinned })}><CheckCircle2 size={12} /> Complete</Button>
+                          <Button variant="outline" size="sm" className="h-8 text-[11px] px-2.5" onClick={() => adminUpdatePromise({ promiseId: entry.id, status: 'Failed', progress: entry.progress, pinned: entry.pinned })}><Ban size={12} /> Fail</Button>
+                          <Button variant="outline" size="sm" className="h-8 text-[11px] px-2.5" onClick={() => adminUpdatePromise({ promiseId: entry.id, status: entry.status, progress: entry.progress, pinned: !entry.pinned })}><Pin size={12} /> Pin</Button>
+                          <Button variant="outline" size="sm" className="h-8 text-[11px] px-2.5 hover:bg-brand-yellow/10 hover:text-brand-yellow" onClick={() => setEditingPromise({ ...entry })}>
+                            <Pencil size={12} /> Edit Details
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">

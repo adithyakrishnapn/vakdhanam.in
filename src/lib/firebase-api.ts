@@ -324,7 +324,19 @@ export async function submitPromise(input: unknown) {
   });
 }
 
-export async function adminUpdatePromise(input: { promiseId: string; status: 'Pending' | 'In Progress' | 'Completed' | 'Failed'; progress: number; pinned?: boolean }) {
+export async function adminUpdatePromise(input: {
+  promiseId: string;
+  status: 'Pending' | 'In Progress' | 'Completed' | 'Failed';
+  progress: number;
+  pinned?: boolean;
+  title?: string;
+  description?: string;
+  category?: 'Health' | 'Education' | 'Infrastructure' | 'Jobs' | 'Transport' | 'Environment' | 'Welfare' | 'Governance';
+  district?: string;
+  electionYear?: number;
+  sourceLink?: string;
+  screenshotUrl?: string | null;
+}) {
   const db = getFirebaseDb();
   if (!db) {
     throw new Error('Firebase is not available');
@@ -338,8 +350,78 @@ export async function adminUpdatePromise(input: { promiseId: string; status: 'Pe
   if (input.pinned !== undefined) {
     updateData['pinned'] = input.pinned;
   }
+  if (input.title !== undefined) {
+    updateData['title'] = input.title.trim();
+  }
+  if (input.description !== undefined) {
+    updateData['description'] = input.description.trim();
+  }
+  if (input.category !== undefined) {
+    updateData['category'] = input.category;
+  }
+  if (input.district !== undefined) {
+    updateData['district'] = input.district.trim();
+  }
+  if (input.electionYear !== undefined) {
+    updateData['electionYear'] = input.electionYear;
+  }
+  if (input.sourceLink !== undefined) {
+    updateData['sourceLink'] = input.sourceLink.trim();
+  }
+  if (input.screenshotUrl !== undefined) {
+    updateData['screenshotUrl'] = input.screenshotUrl?.trim() || null;
+  }
 
   await updateDoc(doc(db, 'promises', input.promiseId), updateData);
+}
+
+export async function adminSyncMissingEvidence() {
+  const db = getFirebaseDb();
+  if (!db) {
+    throw new Error('Firebase is not available');
+  }
+
+  // Get all approved submissions
+  const submissionsSnapshot = await getDocs(
+    query(collection(db, 'submissions'), where('moderationStatus', '==', 'Approved'))
+  );
+
+  let updatedCount = 0;
+
+  for (const docSnap of submissionsSnapshot.docs) {
+    const submissionData = docSnap.data() as any;
+    const submissionId = docSnap.id;
+    const screenshotUrl = submissionData.screenshotUrl;
+    const sourceLink = submissionData.sourceLink;
+
+    if (screenshotUrl || sourceLink) {
+      // Check if corresponding promise exists
+      const promiseRef = doc(db, 'promises', submissionId);
+      const promiseSnap = await getDoc(promiseRef);
+
+      if (promiseSnap.exists()) {
+        const promiseData = promiseSnap.data() as any;
+        const needsUpdate =
+          (screenshotUrl && !promiseData.screenshotUrl) ||
+          (sourceLink && !promiseData.sourceLink);
+
+        if (needsUpdate) {
+          const updateFields: any = {};
+          if (screenshotUrl && !promiseData.screenshotUrl) {
+            updateFields.screenshotUrl = screenshotUrl;
+          }
+          if (sourceLink && !promiseData.sourceLink) {
+            updateFields.sourceLink = sourceLink;
+          }
+
+          await updateDoc(promiseRef, updateFields);
+          updatedCount++;
+        }
+      }
+    }
+  }
+
+  return updatedCount;
 }
 
 export async function adminApproveSubmission(input: { submission: SubmissionItem }) {
