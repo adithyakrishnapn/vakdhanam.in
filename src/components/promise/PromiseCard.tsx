@@ -161,7 +161,7 @@ export default function PromiseCard({ promise }: Props) {
               <Smile size={14} /> React
             </Button>
             {showMemeReacts && (
-              <div className="absolute right-0 top-10 z-40 rounded-2xl border border-white/10 bg-black/95 p-3 backdrop-blur-md animate-in fade-in zoom-in-95 duration-200">
+              <div className="absolute bottom-12 right-0 z-50 rounded-2xl border border-white/10 bg-black/95 p-3 backdrop-blur-md animate-in fade-in zoom-in-95 duration-200 shadow-xl">
                 <div className="grid grid-cols-6 gap-2">
                   {memeEmojis.map((emoji) => (
                     <button
