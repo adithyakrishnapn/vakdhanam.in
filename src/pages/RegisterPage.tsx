@@ -5,6 +5,7 @@ import { createUserWithEmailAndPassword, getRedirectResult, onAuthStateChanged, 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { MessagePopup } from '@/components/ui/message-popup';
 import { Seo } from '@/components/seo/Seo';
 import { useAppStore } from '@/store/useAppStore';
 import { getFirebaseAuth, getGoogleProvider } from '@/lib/firebase';
@@ -17,7 +18,12 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState('');
+  const [popup, setPopup] = useState<{ open: boolean; title: string; message: string; variant: 'success' | 'error' | 'info' }>({
+    open: false,
+    title: '',
+    message: '',
+    variant: 'info',
+  });
 
   useEffect(() => {
     const auth = getFirebaseAuth();
@@ -38,12 +44,12 @@ export default function RegisterPage() {
   async function handleGoogleRegister() {
     const auth = getFirebaseAuth();
     if (!auth) {
-      setMessage('Account service is not configured. Check your environment values.');
+      setPopup({ open: true, title: 'Account service missing', message: 'Firebase is not configured on this device.', variant: 'error' });
       return;
     }
 
     setBusy(true);
-    setMessage('');
+    setPopup({ open: true, title: 'Redirecting', message: 'Taking you to Google sign-in now.', variant: 'info' });
     try {
       await signInWithRedirect(auth, getGoogleProvider());
     } finally {
@@ -56,15 +62,16 @@ export default function RegisterPage() {
     if (!auth) return;
 
     setBusy(true);
-    setMessage('');
+    setPopup({ open: false, title: '', message: '', variant: 'info' });
     try {
       const result = await createUserWithEmailAndPassword(auth, email, password);
-      const next = searchParams.get('next');
-      const destination = next && next.startsWith('/') ? next : '/me';
       await updateProfile(result.user, { displayName: username });
       await sendEmailVerification(result.user);
-      setMessage('Account created. Verification email sent.');
-      navigate(destination, { replace: true });
+      setPopup({ open: true, title: 'Account created', message: 'Verification email sent. Taking you to your dashboard.', variant: 'success' });
+      window.setTimeout(() => navigate('/me', { replace: true }), 1200);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to create your account right now.';
+      setPopup({ open: true, title: 'Register failed', message, variant: 'error' });
     } finally {
       setBusy(false);
     }
@@ -102,7 +109,6 @@ export default function RegisterPage() {
                 <Mail size={16} /> Create account
               </Button>
             </div>
-            {message && <div className="text-sm text-white/65">{message}</div>}
             <div className="text-xs text-white/40">New accounts stay signed in on this device after registration.</div>
             <div className="flex items-center justify-between gap-3 text-xs text-white/40">
               <span>Already have an account?</span>
@@ -111,6 +117,13 @@ export default function RegisterPage() {
           </div>
         </CardContent>
       </Card>
+      <MessagePopup
+        open={popup.open}
+        title={popup.title}
+        message={popup.message}
+        variant={popup.variant}
+        onClose={() => setPopup((current) => ({ ...current, open: false }))}
+      />
     </div>
   );
 }

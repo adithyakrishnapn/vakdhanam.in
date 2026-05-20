@@ -5,18 +5,23 @@ import { getRedirectResult, onAuthStateChanged, signInWithEmailAndPassword, sign
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { MessagePopup } from '@/components/ui/message-popup';
 import { Seo } from '@/components/seo/Seo';
 import { useAppStore } from '@/store/useAppStore';
 import { getFirebaseAuth, getGoogleProvider } from '@/lib/firebase';
 
 export default function AuthPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const authSession = useAppStore((state) => state.authSession);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState('');
+  const [popup, setPopup] = useState<{ open: boolean; title: string; message: string; variant: 'success' | 'error' | 'info' }>({
+    open: false,
+    title: '',
+    message: '',
+    variant: 'info',
+  });
 
   useEffect(() => {
     const auth = getFirebaseAuth();
@@ -36,15 +41,15 @@ export default function AuthPage() {
   async function handleGoogleLogin() {
     const auth = getFirebaseAuth();
     if (!auth) {
-      setMessage('Account service is not configured. Check your environment values.');
+      setPopup({ open: true, title: 'Account service missing', message: 'Firebase is not configured on this device.', variant: 'error' });
       return;
     }
 
     setBusy(true);
-    setMessage('');
+    setPopup({ open: false, title: '', message: '', variant: 'info' });
     try {
+      setPopup({ open: true, title: 'Redirecting', message: 'Taking you to Google sign-in now.', variant: 'info' });
       await signInWithRedirect(auth, getGoogleProvider());
-      setMessage('Redirecting to Google sign-in...');
     } finally {
       setBusy(false);
     }
@@ -52,21 +57,29 @@ export default function AuthPage() {
 
   useEffect(() => {
     if (authSession) {
-      const next = searchParams.get('next');
-      const destination = next && next.startsWith('/') ? next : '/me';
-      navigate(destination, { replace: true });
+      setPopup({ open: true, title: 'Login successful', message: 'Taking you to your dashboard.', variant: 'success' });
+      const timer = window.setTimeout(() => {
+        navigate('/me', { replace: true });
+      }, 1000);
+
+      return () => window.clearTimeout(timer);
     }
-  }, [authSession, navigate, searchParams]);
+    return undefined;
+  }, [authSession, navigate]);
 
   async function handleEmailLogin() {
     const auth = getFirebaseAuth();
     if (!auth) return;
 
     setBusy(true);
-    setMessage('');
+    setPopup({ open: false, title: '', message: '', variant: 'info' });
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      setMessage('Logged in.');
+      setPopup({ open: true, title: 'Login successful', message: 'Taking you to your dashboard.', variant: 'success' });
+      window.setTimeout(() => navigate('/me', { replace: true }), 1000);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to log in right now.';
+      setPopup({ open: true, title: 'Login failed', message, variant: 'error' });
     } finally {
       setBusy(false);
     }
@@ -80,7 +93,7 @@ export default function AuthPage() {
     try {
       await signOut(auth);
       useAppStore.getState().signOutSession();
-      setMessage('Logged out.');
+      setPopup({ open: true, title: 'Signed out', message: 'You are now logged out.', variant: 'success' });
     } finally {
       setBusy(false);
     }
@@ -120,7 +133,6 @@ export default function AuthPage() {
                 <LogOut size={16} /> Sign out
               </Button>
             </div>
-            {message && <div className="text-sm text-white/65">{message}</div>}
             <div className="flex items-center justify-between gap-3 text-xs text-white/40">
               <span>Want a new account instead?</span>
               <Link to="/register" className="text-accent underline underline-offset-4">Register</Link>
@@ -128,6 +140,13 @@ export default function AuthPage() {
           </div>
         </CardContent>
       </Card>
+      <MessagePopup
+        open={popup.open}
+        title={popup.title}
+        message={popup.message}
+        variant={popup.variant}
+        onClose={() => setPopup((current) => ({ ...current, open: false }))}
+      />
     </div>
   );
 }
