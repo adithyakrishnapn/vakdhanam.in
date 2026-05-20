@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Flame, Search, Filter, Sparkles, ArrowRight, ShieldCheck, MessageSquare, ArrowUpDown } from 'lucide-react';
+import { Flame, Search, Filter, Sparkles, ArrowRight, ShieldCheck, MessageSquare, ArrowUpDown, Menu, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ const heroCopy = 'ഓർമ്മയുണ്ടോ ഈ വാഗ്ദാനം
 
 export default function HomePage() {
   const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const promises = useAppStore((state) => state.promises);
   const search = useAppStore((state) => state.search);
   const category = useAppStore((state) => state.category);
@@ -70,16 +71,29 @@ export default function HomePage() {
       <div className="absolute inset-x-0 top-0 h-[32rem] bg-hero-grid opacity-80" />
 
       <header className="sticky top-0 z-40 border-b border-white/8 bg-black/40 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 md:px-6">
-          <button onClick={() => navigate('/')} className="flex items-center gap-3 text-left">
-            <span className="grid h-11 w-11 place-items-center rounded-2xl bg-accent text-brand-ink shadow-glow">
-              <Flame size={20} />
-            </span>
-            <span>
-              <span className="block font-display text-lg font-bold tracking-tight">Vakdhanam.in</span>
-              <span className="block text-[11px] uppercase tracking-[0.3em] text-white/45">Promises fade. Internet remembers.</span>
-            </span>
-          </button>
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 md:flex-row md:items-center md:justify-between md:px-6">
+          <div className="flex items-center justify-between gap-3">
+            <button onClick={() => navigate('/')} className="flex items-center gap-3 text-left self-start">
+              <span className="grid h-11 w-11 place-items-center rounded-2xl bg-accent text-brand-ink shadow-glow">
+                <Flame size={20} />
+              </span>
+              <span>
+                <span className="block font-display text-lg font-bold tracking-tight">Vakdhanam.in</span>
+                <span className="hidden text-[11px] uppercase tracking-[0.3em] text-white/45 sm:block">Promises fade. Internet remembers.</span>
+              </span>
+            </button>
+
+            <Button
+              variant="outline"
+              size="icon"
+              className="md:hidden"
+              onClick={() => setMobileMenuOpen((current) => !current)}
+              aria-expanded={mobileMenuOpen}
+              aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            >
+              {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+            </Button>
+          </div>
 
           <div className="hidden flex-1 items-center justify-center gap-3 lg:flex">
             <div className="relative w-full max-w-lg">
@@ -88,7 +102,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="hidden items-center gap-2 md:flex md:w-auto md:justify-end">
             {authSession ? (
               <Button variant="ghost" size="sm" onClick={() => navigate('/me')}>
                 {profile?.username ?? authSession.displayName}
@@ -102,6 +116,43 @@ export default function HomePage() {
             <Button variant="outline" size="sm" onClick={() => navigate('/submit')}>Submit promise</Button>
           </div>
         </div>
+
+        <motion.div
+          initial={false}
+          animate={mobileMenuOpen ? 'open' : 'closed'}
+          variants={{
+            open: { height: 'auto', opacity: 1 },
+            closed: { height: 0, opacity: 0 },
+          }}
+          transition={{ duration: 0.18, ease: 'easeOut' }}
+          className="overflow-hidden md:hidden"
+        >
+          <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 pb-4">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-white/35" size={18} />
+              <Input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search promises, ministers, districts..."
+                className="pl-11"
+              />
+            </div>
+
+            <div className="flex flex-col gap-2 rounded-3xl border border-white/10 bg-black/50 p-3 backdrop-blur-xl">
+              {authSession ? (
+                <Button variant="ghost" className="justify-start" onClick={() => { setMobileMenuOpen(false); navigate('/me'); }}>
+                  {profile?.username ?? authSession.displayName}
+                </Button>
+              ) : (
+                <>
+                  <Button variant="ghost" className="justify-start" onClick={() => { setMobileMenuOpen(false); navigate('/login'); }}>Login</Button>
+                  <Button variant="outline" className="justify-start" onClick={() => { setMobileMenuOpen(false); navigate('/register'); }}>Register</Button>
+                </>
+              )}
+              <Button variant="outline" className="justify-start" onClick={() => { setMobileMenuOpen(false); navigate('/submit'); }}>Submit promise</Button>
+            </div>
+          </div>
+        </motion.div>
       </header>
 
       <main className="mx-auto max-w-7xl px-4 pb-24 pt-6 md:px-6 md:pt-10">
@@ -112,7 +163,6 @@ export default function HomePage() {
             <div className="relative space-y-5">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge className="border-accent/40 bg-accent/10 text-accent">Live public memory</Badge>
-                <Badge className="border-white/10 bg-white/5 text-white/80">Kerala meme mode</Badge>
               </div>
               <div className="space-y-4">
                 <p className="font-malayalam text-2xl font-semibold text-white/85 md:text-3xl">{heroCopy}</p>

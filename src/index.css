@@ -24,6 +24,7 @@
   --brand-red: 0 78% 54%;
   --brand-green: 140 55% 35%;
   --brand-ink: 0 0% 6%;
+  color-scheme: dark;
 }
 
 :root.light {
@@ -37,6 +38,7 @@
   --border: 0 0% 88%;
   --input: 0 0% 84%;
   --ring: 49 100% 45%;
+  color-scheme: light;
 }
 
 html {
@@ -56,6 +58,18 @@ body {
 
 * {
   box-sizing: border-box;
+}
+
+select {
+  color: hsl(var(--foreground));
+  background-color: hsl(var(--surface));
+  border-color: hsl(var(--border));
+  color-scheme: inherit;
+}
+
+select option {
+  background-color: hsl(var(--surface));
+  color: hsl(var(--foreground));
 }
 
 ::selection {

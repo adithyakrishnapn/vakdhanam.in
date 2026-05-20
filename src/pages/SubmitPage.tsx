@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Upload, FileCheck2, ShieldCheck, Loader2 } from 'lucide-react';
+import { ChevronDown, Upload, FileCheck2, ShieldCheck, Loader2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -103,12 +103,24 @@ export default function SubmitPage() {
             </div>
             <div className="grid gap-4 md:grid-cols-3">
               <Input type="number" placeholder="Election year" {...register('electionYear', { valueAsNumber: true })} />
-              <select className="h-11 rounded-2xl border border-white/10 bg-white/5 px-4 text-sm outline-none" {...register('category')}>
-                {categories.filter((value) => value !== 'All').map((option) => <option key={option} value={option}>{option}</option>)}
-              </select>
-              <select className="h-11 rounded-2xl border border-white/10 bg-white/5 px-4 text-sm outline-none" {...register('district')}>
-                {districtOptions.filter((value) => value !== 'All').map((option) => <option key={option} value={option}>{option}</option>)}
-              </select>
+              <div className="relative">
+                <select
+                  className="h-11 w-full appearance-none rounded-2xl border border-white/10 bg-surface px-4 pr-11 text-sm text-foreground outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/40"
+                  {...register('category')}
+                >
+                  {categories.filter((value) => value !== 'All').map((option) => <option key={option} value={option}>{option}</option>)}
+                </select>
+                <ChevronDown size={16} className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-white/45" />
+              </div>
+              <div className="relative">
+                <select
+                  className="h-11 w-full appearance-none rounded-2xl border border-white/10 bg-surface px-4 pr-11 text-sm text-foreground outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/40"
+                  {...register('district')}
+                >
+                  {districtOptions.filter((value) => value !== 'All').map((option) => <option key={option} value={option}>{option}</option>)}
+                </select>
+                <ChevronDown size={16} className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-white/45" />
+              </div>
             </div>
 
             <div className="rounded-2xl border border-dashed border-white/10 bg-white/5 p-4 text-sm text-white/65">
