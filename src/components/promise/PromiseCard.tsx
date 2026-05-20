@@ -7,6 +7,7 @@ import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { formatCompactNumber } from '@/lib/format';
 import type { PromiseItem } from '@/types';
 import { useAppStore } from '@/store/useAppStore';
+import { useState } from 'react';
 
 interface Props {
   promise: PromiseItem;
@@ -24,6 +25,44 @@ export default function PromiseCard({ promise }: Props) {
   const likePromise = useAppStore((state) => state.likePromise);
   const dislikePromise = useAppStore((state) => state.dislikePromise);
   const votePromise = useAppStore((state) => state.votePromise);
+  const [showMemeReacts, setShowMemeReacts] = useState(false);
+  const [animatingButton, setAnimatingButton] = useState<string | null>(null);
+  
+  const memeEmojis = ['😂', '🤦', '😤', '😡', '🙄', '😒', '👏', '🎉', '❤️', '🔥', '💯', '👌'];
+
+  const handleAnimatedClick = async (buttonId: string, action: () => Promise<void>) => {
+    setAnimatingButton(buttonId);
+    try {
+      await action();
+    } finally {
+      setTimeout(() => setAnimatingButton(null), 600);
+    }
+  };
+
+  const handleShare = async () => {
+    const url = `${window.location.origin}/promise/${promise.id}`;
+    const text = `Check out this promise: ${promise.title}`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: promise.title,
+          text: text,
+          url: url,
+        });
+      } catch (err) {
+        // User cancelled share
+      }
+    } else {
+      // Fallback: copy to clipboard
+      await navigator.clipboard.writeText(`${text}\n${url}`);
+    }
+  };
+
+  const handleMemeReact = (emoji: string) => {
+    console.log('Meme react:', emoji);
+    setShowMemeReacts(false);
+  };
 
   return (
     <Card className={`overflow-hidden ${promise.pinned ? 'ring-1 ring-accent/40' : ''}`}>
@@ -77,14 +116,66 @@ export default function PromiseCard({ promise }: Props) {
 
       <CardFooter className="flex flex-wrap justify-between gap-3">
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={() => likePromise(promise.id)}><ArrowUp size={14} /> Like</Button>
-          <Button variant="outline" size="sm" onClick={() => dislikePromise(promise.id)}><ArrowDown size={14} /> Dislike</Button>
-          <Button variant="outline" size="sm" onClick={() => votePromise(promise.id)}><Vote size={14} /> Vote</Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleAnimatedClick('like', () => likePromise(promise.id))}
+            className={animatingButton === 'like' ? 'animate-pulse' : ''}
+          >
+            <ArrowUp size={14} /> Like
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleAnimatedClick('dislike', () => dislikePromise(promise.id))}
+            className={animatingButton === 'dislike' ? 'animate-pulse' : ''}
+          >
+            <ArrowDown size={14} /> Dislike
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleAnimatedClick('vote', () => votePromise(promise.id))}
+            className={animatingButton === 'vote' ? 'animate-bounce' : ''}
+          >
+            <Vote size={14} /> Vote
+          </Button>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 relative">
           <Button variant="ghost" size="sm" onClick={() => navigate(`/promise/${promise.id}`)}><MessageCircle size={14} /> Discuss</Button>
-          <Button variant="ghost" size="sm"><Share2 size={14} /> Share</Button>
-          <Button variant="ghost" size="sm"><Smile size={14} /> Meme react</Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleAnimatedClick('share', handleShare)}
+            className={animatingButton === 'share' ? 'animate-bounce' : ''}
+          >
+            <Share2 size={14} /> Share
+          </Button>
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowMemeReacts(!showMemeReacts)}
+              className={showMemeReacts ? 'bg-white/10' : ''}
+            >
+              <Smile size={14} /> React
+            </Button>
+            {showMemeReacts && (
+              <div className="absolute right-0 top-10 z-40 rounded-2xl border border-white/10 bg-black/95 p-3 backdrop-blur-md animate-in fade-in zoom-in-95 duration-200">
+                <div className="grid grid-cols-6 gap-2">
+                  {memeEmojis.map((emoji) => (
+                    <button
+                      key={emoji}
+                      onClick={() => handleMemeReact(emoji)}
+                      className="text-xl transition hover:scale-125 active:scale-150 duration-100"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </CardFooter>
     </Card>
