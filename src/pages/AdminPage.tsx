@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Lock, CheckCircle2, Ban, Pin, MessageSquareWarning, BarChart3, Trash2, Sparkles, AlertTriangle, ShieldCheck, Loader2 } from 'lucide-react';
+import { Lock, CheckCircle2, Ban, Pin, MessageSquareWarning, BarChart3, Trash2, Sparkles, AlertTriangle, ShieldCheck, Loader2, Pencil } from 'lucide-react';
 import { collection, limit, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { Seo } from '@/components/seo/Seo';
 import { Card, CardContent } from '@/components/ui/card';
@@ -16,6 +16,7 @@ import {
   adminMarkSubmissionSpam,
   adminRejectSubmission,
   adminUpdatePromise,
+  adminUpdateSubmission,
 } from '@/lib/firebase-api';
 import { getFirebaseDb } from '@/lib/firebase';
 import { mapCommentDocument, mapPromiseDocument, mapSubmissionDocument } from '@/lib/firestore-mappers';
@@ -27,6 +28,7 @@ export default function AdminPage() {
   const [submissions, setSubmissions] = useState<SubmissionItem[]>([]);
   const [comments, setComments] = useState<CommentItem[]>([]);
   const [busyAction, setBusyAction] = useState('');
+  const [editingSubmission, setEditingSubmission] = useState<SubmissionItem | null>(null);
   const [popup, setPopup] = useState<{ open: boolean; title: string; message: string; variant: 'success' | 'error' | 'info' }>({
     open: false,
     title: '',
@@ -140,6 +142,120 @@ export default function AdminPage() {
                     const isApproved = status === 'Approved';
                     const isSpam = status === 'Spam';
                     const isRejected = status === 'Rejected';
+                    const isEditing = editingSubmission?.id === entry.id;
+
+                    if (isEditing) {
+                      return (
+                        <div key={entry.id} className="rounded-3xl border border-brand-yellow/30 bg-white/[0.04] p-5 space-y-4">
+                          <div className="text-xs uppercase tracking-[0.28em] text-brand-yellow font-semibold">Editing Submission</div>
+                          
+                          <div className="space-y-1">
+                            <label className="text-xs text-white/50 font-medium">Title</label>
+                            <input
+                              type="text"
+                              value={editingSubmission.title}
+                              onChange={(e) => setEditingSubmission({ ...editingSubmission, title: e.target.value })}
+                              className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-brand-yellow focus:outline-none"
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-xs text-white/50 font-medium">Description</label>
+                            <textarea
+                              value={editingSubmission.description}
+                              onChange={(e) => setEditingSubmission({ ...editingSubmission, description: e.target.value })}
+                              rows={4}
+                              className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-brand-yellow focus:outline-none min-h-[100px] resize-none"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <label className="text-xs text-white/50 font-medium">Category</label>
+                              <select
+                                value={editingSubmission.category}
+                                onChange={(e) => setEditingSubmission({ ...editingSubmission, category: e.target.value as any })}
+                                className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-brand-yellow focus:outline-none"
+                              >
+                                {['Health', 'Education', 'Infrastructure', 'Jobs', 'Transport', 'Environment', 'Welfare', 'Governance'].map((cat) => (
+                                  <option key={cat} value={cat} className="bg-neutral-900 text-white">{cat}</option>
+                                ))}
+                              </select>
+                            </div>
+                            
+                            <div className="space-y-1">
+                              <label className="text-xs text-white/50 font-medium">District</label>
+                              <input
+                                type="text"
+                                value={editingSubmission.district}
+                                onChange={(e) => setEditingSubmission({ ...editingSubmission, district: e.target.value })}
+                                className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-brand-yellow focus:outline-none"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <label className="text-xs text-white/50 font-medium">Election Year</label>
+                              <input
+                                type="number"
+                                value={editingSubmission.electionYear}
+                                onChange={(e) => setEditingSubmission({ ...editingSubmission, electionYear: parseInt(e.target.value) || 2021 })}
+                                className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-brand-yellow focus:outline-none"
+                              />
+                            </div>
+
+                            <div className="space-y-1">
+                              <label className="text-xs text-white/50 font-medium">Source Link</label>
+                              <input
+                                type="text"
+                                value={editingSubmission.sourceLink}
+                                onChange={(e) => setEditingSubmission({ ...editingSubmission, sourceLink: e.target.value })}
+                                className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-brand-yellow focus:outline-none"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="mt-4 flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={busyAction === `edit-save-${entry.id}`}
+                              onClick={() => runAdminAction(
+                                `edit-save-${entry.id}`,
+                                async () => {
+                                  await adminUpdateSubmission({
+                                    submissionId: editingSubmission.id,
+                                    title: editingSubmission.title,
+                                    description: editingSubmission.description,
+                                    category: editingSubmission.category,
+                                    district: editingSubmission.district,
+                                    electionYear: editingSubmission.electionYear,
+                                    sourceLink: editingSubmission.sourceLink,
+                                  });
+                                  setEditingSubmission(null);
+                                },
+                                'Submission updated',
+                                'The submission has been successfully updated.',
+                              )}
+                              className="bg-brand-yellow/15 text-brand-yellow border-brand-yellow/30 hover:bg-brand-yellow/25"
+                            >
+                              {busyAction === `edit-save-${entry.id}` ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                              Save Changes
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={busyAction === `edit-save-${entry.id}`}
+                              onClick={() => setEditingSubmission(null)}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    }
+
                     return (
                       <div key={entry.id} className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
                         <div className="flex items-start justify-between gap-3">
@@ -175,6 +291,15 @@ export default function AdminPage() {
                               Accept & publish
                             </Button>
                           )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={busyAction !== ''}
+                            onClick={() => setEditingSubmission({ ...entry })}
+                          >
+                            <Pencil size={14} />
+                            Edit
+                          </Button>
                           <Button
                             variant="outline"
                             size="sm"

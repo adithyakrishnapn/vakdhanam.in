@@ -451,3 +451,28 @@ export async function adminDeleteComment(input: { commentId: string; promiseId: 
     });
   });
 }
+
+export async function adminUpdateSubmission(input: {
+  submissionId: string;
+  title: string;
+  description: string;
+  category: 'Health' | 'Education' | 'Infrastructure' | 'Jobs' | 'Transport' | 'Environment' | 'Welfare' | 'Governance';
+  district: string;
+  electionYear: number;
+  sourceLink?: string;
+}) {
+  const db = getFirebaseDb();
+  if (!db) {
+    throw new Error('Firebase is not available');
+  }
+
+  await updateDoc(doc(db, 'submissions', input.submissionId), {
+    title: input.title.trim(),
+    description: input.description.trim(),
+    category: input.category,
+    district: input.district.trim(),
+    electionYear: input.electionYear,
+    sourceLink: input.sourceLink?.trim() ?? undefined,
+    updatedAt: serverTimestamp(),
+  });
+}
