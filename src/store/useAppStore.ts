@@ -4,8 +4,8 @@ import { categories, districts } from '@/data/mock';
 import { sanitizeText } from '@/lib/sanitize';
 import { promiseSubmissionSchema, profileSchema, commentSchema } from '@/lib/validator';
 import { getFirebaseApp, getFirebaseAuth } from '@/lib/firebase';
-import { adminUpdatePromise as callAdminUpdatePromise, castReaction as callCastReaction, castVote as callCastVote, registerLightweightProfile as callRegisterLightweightProfile, submitComment as callSubmitComment, submitPromise as callSubmitPromise, subscribePolls, subscribePublicPromises } from '@/lib/firebase-api';
-import { onAuthStateChanged, signInAnonymously, type User } from 'firebase/auth';
+import { adminUpdatePromise as callAdminUpdatePromise, castReaction as callCastReaction, castVote as callCastVote, submitComment as callSubmitComment, submitPromise as callSubmitPromise, subscribePolls, subscribePublicPromises } from '@/lib/firebase-api';
+import { onAuthStateChanged, type User } from 'firebase/auth';
 import { getIdTokenResult } from 'firebase/auth';
 import type { AuthSession, AvatarName, CommentItem, ParticipantProfile, PollItem, PromiseCategory, PromiseItem, PromiseStatus } from '@/types';
 
@@ -59,6 +59,18 @@ function buildProfile(input: { username: string; email: string; avatar: AvatarNa
   } satisfies ParticipantProfile;
 }
 
+function buildGuestProfile() {
+  return {
+    id: `vakdhanm_user_${crypto.randomUUID().slice(0, 8)}`,
+    username: 'vakdhanm_user',
+    email: '',
+    avatar: 'wave',
+    createdAt: new Date().toISOString(),
+    role: 'visitor' as const,
+    emailVerified: false,
+  } satisfies ParticipantProfile;
+}
+
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
@@ -104,23 +116,8 @@ export const useAppStore = create<AppState>()(
         })() : null;
 
         if (!storedProfile) {
-          void callRegisterLightweightProfile({ username: 'Anonymous', avatar: 'wave' })
-            .then((result) => {
-              const profile = result.profile;
-              set({
-                profile: {
-                  id: profile.id,
-                  username: profile.username,
-                  email: profile.email,
-                  avatar: profile.avatar,
-                  createdAt: profile.createdAt,
-                  role: 'visitor',
-                  emailVerified: false,
-                },
-                reactionIdentityId: profile.id,
-              });
-            })
-            .catch(() => undefined);
+          const guestProfile = buildGuestProfile();
+          set({ profile: guestProfile, reactionIdentityId: guestProfile.id });
         } else {
           set({ profile: storedProfile });
           set({ reactionIdentityId: storedProfile.id });
@@ -134,10 +131,6 @@ export const useAppStore = create<AppState>()(
 
         const auth = getFirebaseAuth();
         if (auth) {
-          if (!auth.currentUser) {
-            void signInAnonymously(auth).catch(() => undefined);
-          }
-
           onAuthStateChanged(auth, async (user) => {
             if (!user) {
               set({ authSession: null });
@@ -157,39 +150,6 @@ export const useAppStore = create<AppState>()(
                 role,
               },
             });
-
-            const storedProfileRawForUser = localStorage.getItem('vakdhanam-store');
-            const storedProfileForUser = storedProfileRawForUser ? (() => {
-              try {
-                const parsed = JSON.parse(storedProfileRawForUser) as { state?: { profile?: ParticipantProfile | null } };
-                return parsed.state?.profile ?? null;
-              } catch {
-                return null;
-              }
-            })() : null;
-
-            if (!storedProfileForUser) {
-              void callRegisterLightweightProfile({ username: 'Anonymous', avatar: 'wave', participantId: user.uid })
-                .then((result) => {
-                  const profile = result.profile;
-                  set({
-                    profile: {
-                      id: profile.id,
-                      username: profile.username,
-                      email: profile.email,
-                      avatar: profile.avatar,
-                      createdAt: profile.createdAt,
-                      role: 'visitor',
-                      emailVerified: false,
-                    },
-                    reactionIdentityId: user.uid,
-                  });
-                })
-                .catch(() => undefined);
-              return;
-            }
-
-            set({ profile: storedProfileForUser, reactionIdentityId: user.uid });
           });
         }
       },

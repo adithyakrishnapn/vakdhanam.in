@@ -35,9 +35,9 @@ service cloud.firestore {
 
     match /comments/{commentId} {
       allow read: if true;
-      allow create: if isSignedIn() && onlyKeys(['id', 'promiseId', 'userId', 'content', 'likes', 'createdAt']) && request.resource.data.userId == request.auth.uid && request.resource.data.content is string && request.resource.data.content.size() <= 500;
-      allow update: if isModerator() || (isSignedIn() && resource.data.userId == request.auth.uid);
-      allow delete: if isModerator() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if onlyKeys(['id', 'promiseId', 'userId', 'content', 'likes', 'createdAt']) && request.resource.data.userId is string && request.resource.data.userId.size() >= 3 && request.resource.data.content is string && request.resource.data.content.size() <= 500;
+      allow update: if isModerator();
+      allow delete: if isModerator();
     }
 
     match /polls/{pollId} {
@@ -58,12 +58,14 @@ service cloud.firestore {
 
     match /reactions/{reactionId} {
       allow read: if isModerator();
-      allow create, update, delete: if isSignedIn() && onlyKeys(['promiseId', 'participantId', 'reaction', 'createdAt']) && request.resource.data.participantId == request.auth.uid;
+      allow create: if onlyKeys(['promiseId', 'participantId', 'reaction', 'createdAt']) && request.resource.data.participantId is string && request.resource.data.participantId.size() >= 3 && request.resource.data.reaction in ['like', 'dislike'];
+      allow update, delete: if isModerator();
     }
 
     match /votes/{voteId} {
       allow read: if isModerator();
-      allow create, update, delete: if isSignedIn() && onlyKeys(['promiseId', 'participantId', 'createdAt']) && request.resource.data.participantId == request.auth.uid;
+      allow create: if onlyKeys(['promiseId', 'participantId', 'createdAt']) && request.resource.data.participantId is string && request.resource.data.participantId.size() >= 3;
+      allow update, delete: if isModerator();
     }
 
     match /rateLimits/{docId} {

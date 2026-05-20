@@ -182,16 +182,11 @@ export async function castReaction(input: { promiseId: string; participantId: st
 }
 
 export async function registerLightweightProfile(input?: { username?: string; email?: string; avatar?: 'sage' | 'mango' | 'rocket' | 'wave' | 'radio' | 'lotus'; participantId?: string }) {
-  const db = getFirebaseDb();
-  const auth = getFirebaseAuth();
-  const participantId = auth?.currentUser?.uid ?? input?.participantId;
-  if (!db || !participantId) {
-    throw new Error('Authentication is not ready');
-  }
+  const participantId = input?.participantId ?? `vakdhanm_user_${crypto.randomUUID().slice(0, 8)}`;
 
   const profile = {
     id: participantId,
-    username: (input?.username ?? 'Anonymous').replace(/<[^>]*>/g, '').trim(),
+    username: (input?.username ?? 'vakdhanm_user').replace(/<[^>]*>/g, '').trim() || 'vakdhanm_user',
     email: (input?.email ?? '').toLowerCase(),
     avatar: input?.avatar ?? 'wave',
     createdAt: new Date().toISOString(),
@@ -199,7 +194,6 @@ export async function registerLightweightProfile(input?: { username?: string; em
     emailVerified: false,
   } as const;
 
-  await setDoc(doc(db, 'users', participantId), profile, { merge: true });
   return { ok: true, profile };
 }
 
