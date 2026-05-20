@@ -119,7 +119,7 @@ async function resolveParticipantId(request: { auth?: { uid: string } }, partici
   return participantId;
 }
 
-export const registerLightweightProfile = onCall({ enforceAppCheck: true }, async (request) => {
+export const registerLightweightProfile = onCall({ cors: true }, async (request) => {
   requireAppCheck(request);
   const payload = lightweightProfileSchema.parse(request.data);
   const participantId = payload.participantId ?? `anon_${randomUUID()}`;
@@ -139,7 +139,7 @@ export const registerLightweightProfile = onCall({ enforceAppCheck: true }, asyn
   return { ok: true, profile };
 });
 
-export const castReaction = onCall({ enforceAppCheck: true }, async (request) => {
+export const castReaction = onCall({ cors: true }, async (request) => {
   requireAppCheck(request);
   const payload = reactionSchema.parse(request.data);
   const participantId = await resolveParticipantId(request, payload.participantId);
@@ -186,7 +186,7 @@ export const castReaction = onCall({ enforceAppCheck: true }, async (request) =>
   return { ok: true };
 });
 
-export const castVote = onCall({ enforceAppCheck: true }, async (request) => {
+export const castVote = onCall({ cors: true }, async (request) => {
   requireAppCheck(request);
   const payload = voteSchema.parse(request.data);
   const participantId = await resolveParticipantId(request, payload.participantId);
@@ -224,7 +224,7 @@ export const castVote = onCall({ enforceAppCheck: true }, async (request) => {
   return { ok: true };
 });
 
-export const submitComment = onCall({ enforceAppCheck: true }, async (request) => {
+export const submitComment = onCall({ cors: true }, async (request) => {
   requireAppCheck(request);
   const payload = commentSchema.parse(request.data);
   const participantId = await resolveParticipantId(request, payload.participantId);
@@ -257,7 +257,7 @@ export const submitComment = onCall({ enforceAppCheck: true }, async (request) =
   return { ok: true };
 });
 
-export const submitPromise = onCall({ enforceAppCheck: true }, async (request) => {
+export const submitPromise = onCall({ cors: true }, async (request) => {
   requireVerifiedEmail(request);
   await assertRateLimit(`submission:${request.auth?.uid}`, 6, 60 * 60_000);
   const payload = submissionSchema.parse(request.data);
@@ -278,7 +278,7 @@ export const submitPromise = onCall({ enforceAppCheck: true }, async (request) =
   return { ok: true, id: submissionRef.id };
 });
 
-export const moderateSubmission = onCall({ enforceAppCheck: true }, async (request) => {
+export const moderateSubmission = onCall({ cors: true }, async (request) => {
   requireAdmin(request);
   const payload = z.object({
     submissionId: z.string().min(1),
@@ -317,14 +317,14 @@ export const moderateSubmission = onCall({ enforceAppCheck: true }, async (reque
   return { ok: true };
 });
 
-export const setAdminClaim = onCall({ enforceAppCheck: true }, async (request) => {
+export const setAdminClaim = onCall({ cors: true }, async (request) => {
   requireAdmin(request);
   const payload = z.object({ uid: z.string().min(1) }).parse(request.data);
   await admin.auth().setCustomUserClaims(payload.uid, { admin: true });
   return { ok: true };
 });
 
-export const adminUpdatePromise = onCall({ enforceAppCheck: true }, async (request) => {
+export const adminUpdatePromise = onCall({ cors: true }, async (request) => {
   requireAdmin(request);
   const payload = z.object({
     promiseId: z.string().min(1),
@@ -343,7 +343,7 @@ export const adminUpdatePromise = onCall({ enforceAppCheck: true }, async (reque
   return { ok: true };
 });
 
-export const adminDeleteComment = onCall({ enforceAppCheck: true }, async (request) => {
+export const adminDeleteComment = onCall({ cors: true }, async (request) => {
   requireAdmin(request);
   const payload = z.object({
     commentId: z.string().min(1),
@@ -364,7 +364,7 @@ export const adminDeleteComment = onCall({ enforceAppCheck: true }, async (reque
   return { ok: true };
 });
 
-export const deleteOwnComment = onCall({ enforceAppCheck: true }, async (request) => {
+export const deleteOwnComment = onCall({ cors: true }, async (request) => {
   requireSignedIn(request);
   const payload = deleteOwnCommentSchema.parse(request.data);
 
@@ -398,7 +398,7 @@ export const deleteOwnComment = onCall({ enforceAppCheck: true }, async (request
   return { ok: true };
 });
 
-export const deleteOwnSubmission = onCall({ enforceAppCheck: true }, async (request) => {
+export const deleteOwnSubmission = onCall({ cors: true }, async (request) => {
   requireSignedIn(request);
   const payload = deleteOwnSubmissionSchema.parse(request.data);
 
