@@ -74,7 +74,7 @@ export default function SubmitPage() {
               try {
                 await submitPromise({
                   ...values,
-                  screenshotUrl: values.screenshotUrl?.trim() ? values.screenshotUrl.trim() : '',
+                  screenshotUrl: values.screenshotUrl?.trim() ? values.screenshotUrl.trim() : null,
                 });
                 setSuccess(true);
                 navigate('/');

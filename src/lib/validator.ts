@@ -15,7 +15,7 @@ export const promiseSubmissionSchema = z.object({
   title: z.string().trim().min(10).max(120),
   description: z.string().trim().min(30).max(1200),
   sourceLink: z.string().trim().url(),
-  screenshotUrl: z.union([z.string().trim().url(), z.literal('')]).optional(),
+  screenshotUrl: z.string().trim().url().optional().or(z.literal('')).transform(val => val && val.trim() ? val.trim() : null),
   electionYear: z.coerce.number().int().min(2000).max(2035),
   category: z.enum(['Health', 'Education', 'Infrastructure', 'Jobs', 'Transport', 'Environment', 'Welfare', 'Governance']),
   district: z.string().trim().min(2).max(64),

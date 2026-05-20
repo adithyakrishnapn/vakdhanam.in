@@ -317,7 +317,7 @@ export async function submitPromise(input: unknown) {
     electionYear: parsed.electionYear,
     category: parsed.category,
     district: parsed.district.trim(),
-    screenshotUrl: parsed.screenshotUrl ?? null,
+    screenshotUrl: parsed.screenshotUrl && parsed.screenshotUrl.trim() ? parsed.screenshotUrl.trim() : null,
     createdBy: userId,
     status: 'Pending Review',
     createdAt: serverTimestamp(),
