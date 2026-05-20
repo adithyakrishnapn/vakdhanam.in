@@ -59,6 +59,7 @@ export interface PromiseItem {
   pinned?: boolean;
   trendScore: number;
   minister?: string;
+  screenshotUrl?: string | null;
   timeline: Array<{ label: string; done: boolean }>;
 }
 

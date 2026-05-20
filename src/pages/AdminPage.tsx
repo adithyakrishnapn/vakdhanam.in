@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Lock, CheckCircle2, Ban, Pin, MessageSquareWarning, BarChart3, Trash2, Sparkles, AlertTriangle, ShieldCheck, Loader2, Pencil } from 'lucide-react';
+import { Lock, CheckCircle2, Ban, Pin, MessageSquareWarning, BarChart3, Trash2, Sparkles, AlertTriangle, ShieldCheck, Loader2, Pencil, Link2, ImageIcon } from 'lucide-react';
 import { collection, limit, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { Seo } from '@/components/seo/Seo';
 import { Card, CardContent } from '@/components/ui/card';
@@ -29,6 +29,7 @@ export default function AdminPage() {
   const [comments, setComments] = useState<CommentItem[]>([]);
   const [busyAction, setBusyAction] = useState('');
   const [editingSubmission, setEditingSubmission] = useState<SubmissionItem | null>(null);
+  const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const [popup, setPopup] = useState<{ open: boolean; title: string; message: string; variant: 'success' | 'error' | 'info' }>({
     open: false,
     title: '',
@@ -216,6 +217,16 @@ export default function AdminPage() {
                             </div>
                           </div>
 
+                          <div className="space-y-1">
+                            <label className="text-xs text-white/50 font-medium">Screenshot / Image URL</label>
+                            <input
+                              type="text"
+                              value={editingSubmission.screenshotUrl || ''}
+                              onChange={(e) => setEditingSubmission({ ...editingSubmission, screenshotUrl: e.target.value })}
+                              className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-brand-yellow focus:outline-none"
+                            />
+                          </div>
+
                           <div className="mt-4 flex gap-2">
                             <Button
                               variant="outline"
@@ -232,6 +243,7 @@ export default function AdminPage() {
                                     district: editingSubmission.district,
                                     electionYear: editingSubmission.electionYear,
                                     sourceLink: editingSubmission.sourceLink,
+                                    screenshotUrl: editingSubmission.screenshotUrl || undefined,
                                   });
                                   setEditingSubmission(null);
                                 },
@@ -268,6 +280,50 @@ export default function AdminPage() {
                           <Sparkles className="text-accent" />
                         </div>
                         <p className="mt-3 text-sm leading-7 text-white/65">{entry.description}</p>
+
+                        {(entry.sourceLink || entry.screenshotUrl) && (
+                          <div className="mt-4 space-y-3 rounded-2xl border border-white/5 bg-white/[0.02] p-4">
+                            {entry.sourceLink && (
+                              <div className="flex items-center gap-2 text-xs">
+                                <Link2 size={14} className="text-accent" />
+                                <span className="text-white/40 font-medium">Source Proof:</span>
+                                <a
+                                  href={entry.sourceLink}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-accent hover:underline break-all"
+                                >
+                                  {entry.sourceLink}
+                                </a>
+                              </div>
+                            )}
+
+                            {entry.screenshotUrl && (
+                              <div className="space-y-1.5">
+                                <div className="flex items-center gap-2 text-xs text-white/40 font-medium">
+                                  <ImageIcon size={14} className="text-brand-yellow" />
+                                  <span>Attached Evidence / Screenshot:</span>
+                                </div>
+                                <div
+                                  onClick={() => setExpandedImage(entry.screenshotUrl || null)}
+                                  className="group relative cursor-zoom-in overflow-hidden rounded-xl border border-white/10 bg-black/40 max-w-[240px]"
+                                >
+                                  <img
+                                    src={entry.screenshotUrl}
+                                    alt="Evidence screenshot"
+                                    className="max-h-[120px] w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                  />
+                                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                                    <span className="rounded-lg bg-white/15 px-2.5 py-1 text-xs font-semibold text-white backdrop-blur-md">
+                                      Click to elaborate
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
                         <div className="mt-4 flex flex-wrap gap-2 text-xs text-white/55">
                           <span className="rounded-full bg-white/5 px-3 py-1">{entry.category}</span>
                           <span className="rounded-full bg-white/5 px-3 py-1">{entry.district}</span>
@@ -482,6 +538,27 @@ export default function AdminPage() {
         variant={popup.variant}
         onClose={() => setPopup((current) => ({ ...current, open: false }))}
       />
+
+      {expandedImage && (
+        <div
+          onClick={() => setExpandedImage(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-md transition-opacity duration-300 animate-in fade-in"
+        >
+          <button
+            onClick={() => setExpandedImage(null)}
+            className="absolute top-4 right-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20 focus:outline-none"
+          >
+            <span className="sr-only">Close</span>
+            ✕
+          </button>
+          <img
+            src={expandedImage}
+            alt="Elaborated evidence"
+            className="max-h-[90vh] max-w-full rounded-2xl border border-white/10 object-contain shadow-2xl animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }

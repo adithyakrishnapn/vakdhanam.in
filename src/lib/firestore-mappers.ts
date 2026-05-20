@@ -33,6 +33,7 @@ export function mapPromiseDocument(id: string, data: any): PromiseItem {
     pinned: Boolean(data['pinned']),
     trendScore: Number(data['trendScore'] ?? 0),
     minister: data['minister'] ? String(data['minister']) : undefined,
+    screenshotUrl: data['screenshotUrl'] ? String(data['screenshotUrl']) : null,
     timeline: Array.isArray(data['timeline'])
       ? data['timeline'].map((entry: any) => ({
           label: String(entry['label'] ?? ''),

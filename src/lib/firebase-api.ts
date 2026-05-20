@@ -370,6 +370,7 @@ export async function adminApproveSubmission(input: { submission: SubmissionItem
     progress: 0,
     pinned: false,
     trendScore: 15,
+    screenshotUrl: input.submission.screenshotUrl ?? null,
     timeline: [{ label: 'Approved by moderators', done: true }],
   });
 
@@ -463,6 +464,7 @@ export async function adminUpdateSubmission(input: {
   district: string;
   electionYear: number;
   sourceLink?: string;
+  screenshotUrl?: string;
 }) {
   const db = getFirebaseDb();
   if (!db) {
@@ -476,6 +478,7 @@ export async function adminUpdateSubmission(input: {
     district: input.district.trim(),
     electionYear: input.electionYear,
     sourceLink: input.sourceLink?.trim() ?? '',
+    screenshotUrl: input.screenshotUrl?.trim() ?? null,
     updatedAt: serverTimestamp(),
   });
 }

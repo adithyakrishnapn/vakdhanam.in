@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, MessageSquare, Vote, Send, ShieldAlert, Share2 } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Vote, Send, ShieldAlert, Share2, ImageIcon, Link2 } from 'lucide-react';
 import { Seo } from '@/components/seo/Seo';
 import { useAppStore } from '@/store/useAppStore';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,7 @@ export default function PromisePage() {
   const [promise, setPromise] = useState<PromiseItem | null>(null);
   const [comments, setComments] = useState<CommentItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expandedImage, setExpandedImage] = useState<string | null>(null);
 
   const completionText = useMemo(() => {
     if (!promise) return 'Promise not found';
@@ -120,6 +121,30 @@ export default function PromisePage() {
               {completionText}
             </div>
 
+            {promise.screenshotUrl && (
+              <div className="space-y-2 rounded-2xl border border-white/10 bg-black/20 p-5">
+                <div className="flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-white/45">
+                  <ImageIcon size={14} className="text-brand-yellow" />
+                  <span>Evidence / Screenshot Proof</span>
+                </div>
+                <div
+                  onClick={() => setExpandedImage(promise.screenshotUrl || null)}
+                  className="group relative cursor-zoom-in overflow-hidden rounded-2xl border border-white/10 bg-black/40 max-w-md"
+                >
+                  <img
+                    src={promise.screenshotUrl}
+                    alt="Proof evidence screenshot"
+                    className="max-h-[300px] w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                    <span className="rounded-xl bg-white/15 px-4 py-2 text-sm font-semibold text-white backdrop-blur-md">
+                      Click to elaborate image
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="grid gap-4 sm:grid-cols-3">
               {[
                 ['Votes', formatCompactNumber(promise.votes)],
@@ -197,6 +222,26 @@ export default function PromisePage() {
           </CardContent>
         </Card>
       </div>
+      {expandedImage && (
+        <div
+          onClick={() => setExpandedImage(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-md transition-opacity duration-300 animate-in fade-in"
+        >
+          <button
+            onClick={() => setExpandedImage(null)}
+            className="absolute top-4 right-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20 focus:outline-none"
+          >
+            <span className="sr-only">Close</span>
+            ✕
+          </button>
+          <img
+            src={expandedImage}
+            alt="Elaborated evidence"
+            className="max-h-[90vh] max-w-full rounded-2xl border border-white/10 object-contain shadow-2xl animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }
