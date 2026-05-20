@@ -41,7 +41,11 @@ export function subscribePromiseComments(promiseId: string, onUpdate: (items: Co
 
   const commentQuery = query(collection(db, 'comments'), where('promiseId', '==', promiseId), orderBy('createdAt', 'desc'), limit(200));
   return onSnapshot(commentQuery, (snapshot) => {
-    onUpdate(snapshot.docs.map((entry) => mapCommentDocument(entry.id, entry.data() as Record<string, unknown>)));
+    onUpdate(
+      snapshot.docs
+        .map((entry) => mapCommentDocument(entry.id, entry.data() as Record<string, unknown>))
+        .filter((comment) => comment.moderationStatus !== 'Spam' && comment.moderationStatus !== 'Hidden'),
+    );
   }, () => {
     onUpdate([]);
   });
@@ -131,7 +135,9 @@ export async function fetchPromiseCommentsOnce(promiseId: string) {
 
   const commentQuery = query(collection(db, 'comments'), where('promiseId', '==', promiseId), orderBy('createdAt', 'desc'), limit(200));
   const snapshot = await getDocs(commentQuery);
-  return snapshot.docs.map((entry) => mapCommentDocument(entry.id, entry.data() as Record<string, unknown>));
+  return snapshot.docs
+    .map((entry) => mapCommentDocument(entry.id, entry.data() as Record<string, unknown>))
+    .filter((comment) => comment.moderationStatus !== 'Spam' && comment.moderationStatus !== 'Hidden');
 }
 
 export async function castReaction(input: { promiseId: string; participantId: string; reaction: 'like' | 'dislike' }) {
@@ -329,6 +335,102 @@ export async function adminUpdatePromise(input: { promiseId: string; status: 'Pe
     progress: input.progress,
     pinned: input.pinned ?? undefined,
     updatedAt: serverTimestamp(),
+  });
+}
+
+export async function adminApproveSubmission(input: { submission: SubmissionItem }) {
+  const db = getFirebaseDb();
+  if (!db) {
+    throw new Error('Firebase is not available');
+  }
+
+  const submissionRef = doc(db, 'submissions', input.submission.id);
+  const promiseRef = doc(db, 'promises', input.submission.id);
+  await setDoc(promiseRef, {
+    id: input.submission.id,
+    title: input.submission.title,
+    description: input.submission.description,
+    category: input.submission.category,
+    district: input.submission.district,
+    sourceLink: input.submission.sourceLink,
+    electionYear: input.submission.electionYear,
+    status: 'Pending',
+    likes: 0,
+    dislikes: 0,
+    votes: 0,
+    commentsCount: 0,
+    createdBy: input.submission.createdBy,
+    verified: true,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    progress: 0,
+    pinned: false,
+    trendScore: 15,
+    minister: undefined,
+    timeline: [{ label: 'Approved by moderators', done: true }],
+  });
+
+  await updateDoc(submissionRef, {
+    moderationStatus: 'Approved',
+    moderatedAt: serverTimestamp(),
+    reviewedPromiseId: promiseRef.id,
+  });
+}
+
+export async function adminRejectSubmission(input: { submissionId: string }) {
+  const db = getFirebaseDb();
+  if (!db) {
+    throw new Error('Firebase is not available');
+  }
+
+  await updateDoc(doc(db, 'submissions', input.submissionId), {
+    moderationStatus: 'Rejected',
+    moderatedAt: serverTimestamp(),
+  });
+}
+
+export async function adminMarkSubmissionSpam(input: { submissionId: string }) {
+  const db = getFirebaseDb();
+  if (!db) {
+    throw new Error('Firebase is not available');
+  }
+
+  await updateDoc(doc(db, 'submissions', input.submissionId), {
+    moderationStatus: 'Spam',
+    moderatedAt: serverTimestamp(),
+  });
+}
+
+export async function adminDeleteSubmission(input: { submissionId: string }) {
+  const db = getFirebaseDb();
+  if (!db) {
+    throw new Error('Firebase is not available');
+  }
+
+  await deleteDoc(doc(db, 'submissions', input.submissionId));
+}
+
+export async function adminApproveComment(input: { commentId: string }) {
+  const db = getFirebaseDb();
+  if (!db) {
+    throw new Error('Firebase is not available');
+  }
+
+  await updateDoc(doc(db, 'comments', input.commentId), {
+    moderationStatus: 'Approved',
+    moderatedAt: serverTimestamp(),
+  });
+}
+
+export async function adminMarkCommentSpam(input: { commentId: string }) {
+  const db = getFirebaseDb();
+  if (!db) {
+    throw new Error('Firebase is not available');
+  }
+
+  await updateDoc(doc(db, 'comments', input.commentId), {
+    moderationStatus: 'Spam',
+    moderatedAt: serverTimestamp(),
   });
 }
 

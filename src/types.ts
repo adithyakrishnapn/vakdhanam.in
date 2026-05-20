@@ -69,6 +69,8 @@ export interface CommentItem {
   content: string;
   likes: number;
   createdAt: string;
+  moderationStatus?: 'Approved' | 'Spam' | 'Hidden';
+  moderatedAt?: string;
 }
 
 export interface PollItem {
@@ -97,6 +99,7 @@ export interface SubmissionItem {
   screenshotUrl?: string | null;
   createdBy: string;
   status: string;
-  moderationStatus?: string;
+  moderationStatus?: 'Pending Review' | 'Approved' | 'Rejected' | 'Spam';
+  moderatedAt?: string;
   createdAt: string;
 }

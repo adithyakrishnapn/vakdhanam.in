@@ -50,6 +50,8 @@ export function mapCommentDocument(id: string, data: any): CommentItem {
     content: String(data['content'] ?? ''),
     likes: Number(data['likes'] ?? 0),
     createdAt: toStringDate(data['createdAt']),
+    moderationStatus: data['moderationStatus'] ? String(data['moderationStatus']) as CommentItem['moderationStatus'] : undefined,
+    moderatedAt: data['moderatedAt'] ? toStringDate(data['moderatedAt']) : undefined,
   };
 }
 
@@ -101,7 +103,8 @@ export function mapSubmissionDocument(id: string, data: any): SubmissionItem {
     screenshotUrl: data['screenshotUrl'] ? String(data['screenshotUrl']) : null,
     createdBy: String(data['createdBy'] ?? ''),
     status: String(data['status'] ?? 'Pending Review'),
-    moderationStatus: data['moderationStatus'] ? String(data['moderationStatus']) : undefined,
+    moderationStatus: data['moderationStatus'] ? String(data['moderationStatus']) as SubmissionItem['moderationStatus'] : undefined,
+    moderatedAt: data['moderatedAt'] ? toStringDate(data['moderatedAt']) : undefined,
     createdAt: toStringDate(data['createdAt']),
   };
 }
