@@ -330,12 +330,16 @@ export async function adminUpdatePromise(input: { promiseId: string; status: 'Pe
     throw new Error('Firebase is not available');
   }
 
-  await updateDoc(doc(db, 'promises', input.promiseId), {
+  const updateData: Record<string, any> = {
     status: input.status,
     progress: input.progress,
-    pinned: input.pinned ?? undefined,
     updatedAt: serverTimestamp(),
-  });
+  };
+  if (input.pinned !== undefined) {
+    updateData['pinned'] = input.pinned;
+  }
+
+  await updateDoc(doc(db, 'promises', input.promiseId), updateData);
 }
 
 export async function adminApproveSubmission(input: { submission: SubmissionItem }) {
@@ -366,7 +370,6 @@ export async function adminApproveSubmission(input: { submission: SubmissionItem
     progress: 0,
     pinned: false,
     trendScore: 15,
-    minister: undefined,
     timeline: [{ label: 'Approved by moderators', done: true }],
   });
 
@@ -472,7 +475,7 @@ export async function adminUpdateSubmission(input: {
     category: input.category,
     district: input.district.trim(),
     electionYear: input.electionYear,
-    sourceLink: input.sourceLink?.trim() ?? undefined,
+    sourceLink: input.sourceLink?.trim() ?? '',
     updatedAt: serverTimestamp(),
   });
 }
