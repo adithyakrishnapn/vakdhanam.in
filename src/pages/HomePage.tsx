@@ -25,18 +25,17 @@ export default function HomePage() {
     variant: 'info',
   });
   const promises = useAppStore((state) => state.promises);
-  const search = useAppStore((state) => state.search);
-  const setSearch = useAppStore((state) => state.setSearch);
+  const [searchQuery, setSearchQuery] = useState('');
   const [category, setCategory] = useState('All');
   const [district, setDistrict] = useState('All');
   const [feedMode, setFeedMode] = useState<FeedMode>('trending');
 
   const clearFilters = useCallback(() => {
+    setSearchQuery('');
     setCategory('All');
     setDistrict('All');
     setFeedMode('trending');
-    setSearch('');
-  }, [setSearch]);
+  }, []);
   const loading = useAppStore((state) => state.loading);
   const firebaseReady = useAppStore((state) => state.firebaseReady);
   const authSession = useAppStore((state) => state.authSession);
@@ -73,6 +72,25 @@ export default function HomePage() {
     return [entry.category, entry.minister ?? ''].some((value) => normalize(String(value)) === selectedCategory);
   };
 
+  const matchesSearch = (entry: (typeof promises)[number], query: string) => {
+    const terms = normalize(query).split(/\s+/).filter(Boolean);
+    if (terms.length === 0) {
+      return true;
+    }
+    const haystack = [
+      entry.title,
+      entry.description,
+      entry.category,
+      entry.district,
+      entry.minister ?? '',
+      entry.status,
+      String(entry.electionYear),
+    ]
+      .join(' ')
+      .toLowerCase();
+    return terms.every((term) => haystack.includes(term));
+  };
+
   const feedTitle = useMemo(() => {
     switch (feedMode) {
       case 'votes':
@@ -88,14 +106,8 @@ export default function HomePage() {
 
   const filtered = useMemo(() => {
     let items = [...promises];
-    if (search) {
-      const term = search.toLowerCase();
-      items = items.filter((entry) =>
-        [entry.title, entry.description, entry.category, entry.district, entry.minister ?? '']
-          .join(' ')
-          .toLowerCase()
-          .includes(term),
-      );
+    if (searchQuery.trim()) {
+      items = items.filter((entry) => matchesSearch(entry, searchQuery));
     }
     if (category !== 'All') {
       items = items.filter((entry) => matchesCategory(entry, category));
@@ -113,9 +125,25 @@ export default function HomePage() {
       default:
         return items.sort((a, b) => b.trendScore - a.trendScore);
     }
-  }, [promises, search, category, district, feedMode]);
+  }, [promises, searchQuery, category, district, feedMode, keralaDistricts]);
 
   const topThree = filtered.slice(0, 3);
+  const trimmedSearch = searchQuery.trim();
+
+  const searchInput = (placeholder: string, className?: string) => (
+    <div className={`relative min-w-0 ${className ?? ''}`}>
+      <Search className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-white/35" size={18} />
+      <Input
+        type="search"
+        value={searchQuery}
+        onChange={(event) => setSearchQuery(event.target.value)}
+        placeholder={placeholder}
+        aria-label="Search promises"
+        className="relative z-20 w-full pl-11"
+      />
+    </div>
+  );
+
   return (
     <div className="relative w-full max-w-[100vw] overflow-x-hidden">
       <Seo
@@ -150,11 +178,8 @@ export default function HomePage() {
             </Button>
           </div>
 
-          <div className="hidden flex-1 items-center justify-center gap-3 lg:flex">
-            <div className="relative w-full max-w-lg">
-              <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-white/35" size={18} />
-              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search promises, ministers, districts, or the lies people remember" className="pl-11" />
-            </div>
+          <div className="hidden min-w-0 flex-1 items-center justify-center gap-3 lg:flex">
+            {searchInput('Search promises, ministers, districts, or the lies people remember', 'w-full max-w-lg')}
           </div>
 
           <div className="hidden items-center gap-2 md:flex md:w-auto md:justify-end">
@@ -183,15 +208,7 @@ export default function HomePage() {
           className="overflow-hidden md:hidden"
         >
           <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 pb-4">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-white/35" size={18} />
-              <Input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search promises, ministers, districts..."
-                className="pl-11"
-              />
-            </div>
+            {searchInput('Search promises, ministers, districts...')}
 
             <div className="flex flex-col gap-2 rounded-3xl border border-white/10 bg-black/50 p-3 backdrop-blur-xl">
               {authSession ? (
@@ -298,6 +315,14 @@ export default function HomePage() {
         </section>
 
         <section className="mt-8 min-w-0 space-y-4 rounded-3xl border border-white/10 bg-white/[0.03] p-4 sm:p-6">
+          <div className="space-y-2 lg:hidden">
+            <div className="flex items-center gap-2">
+              <Search size={16} className="text-accent" />
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/45">Search</p>
+            </div>
+            {searchInput('Search by title, district, sector, or status...')}
+          </div>
+
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Filter size={16} className="text-accent" />
@@ -340,7 +365,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          {(category !== 'All' || district !== 'All') && (
+          {(trimmedSearch || category !== 'All' || district !== 'All') && (
             <div className="border-t border-white/5 pt-3 flex justify-end">
               <Button
                 variant="outline"
@@ -365,6 +390,7 @@ export default function HomePage() {
                 <h2 className="text-2xl font-bold sm:text-3xl">{feedTitle}</h2>
                 <p className="mt-1 text-sm text-white/50">
                   {filtered.length} {filtered.length === 1 ? 'promise' : 'promises'}
+                  {trimmedSearch && ` matching "${trimmedSearch}"`}
                   {(category !== 'All' || district !== 'All') && ` · ${category !== 'All' ? category : 'All sectors'} · ${district !== 'All' ? district : 'All places'}`}
                 </p>
               </div>
@@ -408,8 +434,14 @@ export default function HomePage() {
                   <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-white/8 text-accent">
                     <MessageSquare />
                   </div>
-                  <h3 className="text-xl font-bold">Nothing matches this filter yet.</h3>
-                  <p className="mt-2 text-white/60">Try another district or bring a fresh Vakdhanam into the arena.</p>
+                  <h3 className="text-xl font-bold">
+                    {trimmedSearch ? 'No promises match your search.' : 'Nothing matches this filter yet.'}
+                  </h3>
+                  <p className="mt-2 text-white/60">
+                    {trimmedSearch
+                      ? 'Try fewer words, another spelling, or clear search to see the full feed.'
+                      : 'Try another district or bring a fresh Vakdhanam into the arena.'}
+                  </p>
                   <div className="mt-5">
                     <Button variant="outline" onClick={clearFilters}>Reset filters</Button>
                   </div>
