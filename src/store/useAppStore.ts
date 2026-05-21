@@ -9,7 +9,7 @@ import { onAuthStateChanged, type User } from 'firebase/auth';
 import { getIdTokenResult } from 'firebase/auth';
 import type { AuthSession, AvatarName, CommentItem, ParticipantProfile, PollItem, PromiseCategory, PromiseItem, PromiseStatus } from '@/types';
 
-type FeedMode = 'trending' | 'votes' | 'recent' | 'completed';
+export type FeedMode = 'trending' | 'votes' | 'recent' | 'completed';
 type ThemeMode = 'dark' | 'light';
 
 interface AppState {

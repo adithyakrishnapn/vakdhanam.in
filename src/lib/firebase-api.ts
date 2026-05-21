@@ -214,7 +214,6 @@ export async function castVote(input: { promiseId: string; participantId: string
   const participantId = getFirebaseAuth()?.currentUser?.uid ?? input.participantId;
   const voteRef = doc(db, 'votes', `${input.promiseId}_${participantId}`);
   const promiseRef = doc(db, 'promises', input.promiseId);
-  const pollRef = doc(db, 'polls', input.promiseId);
 
   await runTransaction(db, async (transaction) => {
     const voteSnapshot = await transaction.get(voteRef);
@@ -236,11 +235,6 @@ export async function castVote(input: { promiseId: string; participantId: string
       trendScore: increment(4),
       updatedAt: serverTimestamp(),
     });
-    transaction.set(pollRef, {
-      promiseId: input.promiseId,
-      totalVotes: increment(1),
-      updatedAt: serverTimestamp(),
-    }, { merge: true });
   });
 }
 

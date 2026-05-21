@@ -111,25 +111,25 @@ export default function PromiseCard({ promise, onFeedback }: Props) {
 
         <div className="flex flex-wrap items-center gap-2 text-sm text-white/65">
           {[
-            [<ArrowUp key="up" size={16} />, formatCompactNumber(promise.likes)],
-            [<ArrowDown key="down" size={16} />, formatCompactNumber(promise.dislikes)],
-            [<MessageCircle key="comments" size={16} />, formatCompactNumber(promise.commentsCount)],
-            [<Vote key="vote" size={16} />, formatCompactNumber(promise.votes)],
-          ].map(([icon, value]) => (
-            <span key={String(value)} className="inline-flex items-center gap-1 rounded-full bg-white/5 px-3 py-2">
+            { icon: <ArrowUp key="up" size={16} />, value: formatCompactNumber(promise.likes), key: 'likes' },
+            { icon: <ArrowDown key="down" size={16} />, value: formatCompactNumber(promise.dislikes), key: 'dislikes' },
+            { icon: <MessageCircle key="comments" size={16} />, value: formatCompactNumber(promise.commentsCount), key: 'comments' },
+            { icon: <Vote key="vote" size={16} />, value: formatCompactNumber(promise.votes), key: 'votes' },
+          ].map(({ icon, value, key }) => (
+            <span key={key} className="inline-flex items-center gap-1 rounded-full bg-white/5 px-3 py-2">
               {icon} {value}
             </span>
           ))}
         </div>
       </CardContent>
 
-      <CardFooter className="flex flex-wrap justify-between gap-3">
-        <div className="flex flex-wrap gap-2">
+      <CardFooter className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-5 md:p-6">
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           <Button
             variant="outline"
             size="sm"
             onClick={() => handleAnimatedClick('like', () => likePromise(promise.id), 'Liked', 'Your like was recorded.')}
-            className={animatingButton === 'like' ? 'animate-pulse' : ''}
+            className={`flex-1 sm:flex-initial ${animatingButton === 'like' ? 'animate-pulse' : ''}`}
           >
             <ArrowUp size={14} /> Like
           </Button>
@@ -137,7 +137,7 @@ export default function PromiseCard({ promise, onFeedback }: Props) {
             variant="outline"
             size="sm"
             onClick={() => handleAnimatedClick('dislike', () => dislikePromise(promise.id), 'Disliked', 'Your dislike was recorded.')}
-            className={animatingButton === 'dislike' ? 'animate-pulse' : ''}
+            className={`flex-1 sm:flex-initial ${animatingButton === 'dislike' ? 'animate-pulse' : ''}`}
           >
             <ArrowDown size={14} /> Dislike
           </Button>
@@ -145,27 +145,27 @@ export default function PromiseCard({ promise, onFeedback }: Props) {
             variant="outline"
             size="sm"
             onClick={() => handleAnimatedClick('vote', () => votePromise(promise.id), 'Vote counted', 'Your vote was recorded.')}
-            className={animatingButton === 'vote' ? 'animate-bounce' : ''}
+            className={`flex-1 sm:flex-initial ${animatingButton === 'vote' ? 'animate-bounce' : ''}`}
           >
             <Vote size={14} /> Vote
           </Button>
         </div>
-        <div className="flex flex-wrap gap-2 relative">
-          <Button variant="ghost" size="sm" onClick={() => navigate(`/promise/${promise.id}`)}><MessageCircle size={14} /> Discuss</Button>
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto sm:justify-end relative">
+          <Button variant="ghost" size="sm" onClick={() => navigate(`/promise/${promise.id}`)} className="flex-1 sm:flex-initial"><MessageCircle size={14} /> Discuss</Button>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => handleAnimatedClick('share', handleShare, 'Shared', 'Share link copied or shared successfully.')}
-            className={animatingButton === 'share' ? 'animate-bounce' : ''}
+            className={`flex-1 sm:flex-initial ${animatingButton === 'share' ? 'animate-bounce' : ''}`}
           >
             <Share2 size={14} /> Share
           </Button>
-          <div className="relative">
+          <div className="relative flex-1 sm:flex-initial">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setShowMemeReacts(!showMemeReacts)}
-              className={showMemeReacts ? 'bg-white/10' : ''}
+              className={`w-full ${showMemeReacts ? 'bg-white/10' : ''}`}
             >
               <Smile size={14} /> React
             </Button>

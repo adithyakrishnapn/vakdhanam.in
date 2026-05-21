@@ -193,27 +193,27 @@ export default function PromisePage() {
     <div className="mx-auto min-h-screen max-w-6xl px-4 py-6 md:px-6 md:py-10">
       <Seo title={promise.title} description={promise.description} path={`/promise/${promise.id}`} />
 
-      <div className="mb-6 flex items-center justify-between gap-3">
-        <Button variant="ghost" onClick={() => navigate(-1)}><ArrowLeft size={16} /> Back</Button>
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <Button variant="ghost" className="w-fit" onClick={() => navigate(-1)}><ArrowLeft size={16} /> Back</Button>
         <Button
           variant="outline"
+          className={`w-full sm:w-auto ${animatingButton === 'share' ? 'animate-bounce' : ''}`}
           onClick={() => handleAnimatedClick('share', handleShare, 'Shared', 'Share link copied or shared successfully.')}
-          className={animatingButton === 'share' ? 'animate-bounce' : ''}
         >
           <Share2 size={16} /> Share card
         </Button>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-        <Card>
-          <CardContent className="space-y-5 p-6 md:p-8">
+        <Card className="min-w-0">
+          <CardContent className="space-y-5 p-4 sm:p-6 md:p-8">
             <div className="flex flex-wrap items-center gap-2">
               <Badge>{promise.status}</Badge>
               <Badge className="bg-brand-yellow/10 text-brand-yellow">{promise.category}</Badge>
               <Badge className="bg-white/5 text-white/70">{promise.district}</Badge>
             </div>
-            <h1 className="max-w-3xl text-4xl font-bold leading-tight text-white md:text-6xl">{promise.title}</h1>
-            <p className="max-w-3xl text-lg leading-8 text-white/70">{promise.description}</p>
+            <h1 className="max-w-3xl text-3xl font-bold leading-tight text-white sm:text-4xl md:text-6xl">{promise.title}</h1>
+            <p className="max-w-3xl text-base leading-7 text-white/70 sm:text-lg sm:leading-8">{promise.description}</p>
             <div className="rounded-2xl border border-white/10 bg-black/20 p-5 text-sm leading-7 text-white/70">
               {completionText}
             </div>
@@ -281,8 +281,8 @@ export default function PromisePage() {
             <div className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.04] p-5">
               <div className="flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-white/45"><ShieldAlert size={14} /> Timeline</div>
               <div className="space-y-3">
-                {promise.timeline.map((step) => (
-                  <div key={step.label} className="flex items-center justify-between rounded-2xl bg-black/20 px-4 py-3">
+                {promise.timeline.map((step, index) => (
+                  <div key={`${step.label}-${index}`} className="flex items-center justify-between rounded-2xl bg-black/20 px-4 py-3">
                     <span>{step.label}</span>
                     <span className={step.done ? 'text-brand-green' : 'text-white/35'}>{step.done ? 'Done' : 'Pending'}</span>
                   </div>
@@ -290,41 +290,42 @@ export default function PromisePage() {
               </div>
             </div>
           </CardContent>
-          <CardFooter className="flex flex-wrap justify-between gap-3">
-            <div className="flex gap-2">
+          <CardFooter className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-5 md:p-6">
+            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
               <Button
                 onClick={() => handleAnimatedClick('like', () => likePromise(promise.id), 'Liked', 'Your like was recorded.')}
-                className={animatingButton === 'like' ? 'animate-pulse' : ''}
+                className={`flex-1 sm:flex-initial ${animatingButton === 'like' ? 'animate-pulse' : ''}`}
               >
                 <ArrowUp size={16} /> Like
               </Button>
               <Button
                 variant="outline"
                 onClick={() => handleAnimatedClick('dislike', () => dislikePromise(promise.id), 'Disliked', 'Your dislike was recorded.')}
-                className={animatingButton === 'dislike' ? 'animate-pulse' : ''}
+                className={`flex-1 sm:flex-initial ${animatingButton === 'dislike' ? 'animate-pulse' : ''}`}
               >
                 <ArrowDown size={16} /> Dislike
               </Button>
               <Button
                 variant="outline"
                 onClick={() => handleAnimatedClick('vote', () => votePromise(promise.id), 'Vote counted', 'Your vote was recorded.')}
-                className={animatingButton === 'vote' ? 'animate-bounce' : ''}
+                className={`flex-1 sm:flex-initial ${animatingButton === 'vote' ? 'animate-bounce' : ''}`}
               >
                 <Vote size={16} /> Vote
               </Button>
             </div>
-            <div className="flex gap-2 relative">
+            <div className="flex flex-wrap gap-2 w-full sm:w-auto sm:justify-end relative">
               <Button
                 variant="ghost"
                 onClick={() => navigate(`/promise/${promise.id}#comments`)}
+                className="flex-1 sm:flex-initial"
               >
                 <MessageSquare size={16} /> Discuss
               </Button>
-              <div className="relative">
+              <div className="relative flex-1 sm:flex-initial">
                 <Button
                   variant="ghost"
                   onClick={() => setShowMemeReacts(!showMemeReacts)}
-                  className={showMemeReacts ? 'bg-white/10' : ''}
+                  className={`w-full ${showMemeReacts ? 'bg-white/10' : ''}`}
                 >
                   <Smile size={16} /> React
                 </Button>
@@ -344,15 +345,15 @@ export default function PromisePage() {
                   </div>
                 )}
               </div>
-              <Button variant="ghost" onClick={() => navigate('/submit')}>
+              <Button variant="ghost" onClick={() => navigate('/submit')} className="flex-1 sm:flex-initial">
                 <MessageSquare size={16} /> Add another
               </Button>
             </div>
           </CardFooter>
         </Card>
 
-        <Card>
-          <CardContent className="space-y-5 p-6">
+        <Card className="min-w-0">
+          <CardContent className="space-y-5 p-4 sm:p-6">
             <div>
               <p className="text-xs uppercase tracking-[0.3em] text-white/45">Discussion</p>
               <h2 className="mt-2 text-2xl font-bold">Public comments</h2>

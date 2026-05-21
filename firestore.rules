@@ -21,6 +21,18 @@ service cloud.firestore {
       return request.resource.data.keys().hasOnly(keys);
     }
 
+    function isEngagementPromiseUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['votes', 'likes', 'dislikes', 'commentsCount', 'trendScore', 'updatedAt']);
+    }
+
+    function isReactionWrite() {
+      return onlyKeys(['promiseId', 'participantId', 'reaction', 'createdAt'])
+        && request.resource.data.participantId is string
+        && request.resource.data.participantId.size() >= 3
+        && request.resource.data.reaction in ['like', 'dislike'];
+    }
+
     match /users/{userId} {
       allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       allow create: if isSignedIn() && request.auth.uid == userId && onlyKeys(['id', 'username', 'email', 'avatar', 'createdAt', 'role', 'emailVerified']) && request.resource.data.role in ['visitor', 'user', 'moderator', 'admin'];
@@ -30,7 +42,8 @@ service cloud.firestore {
 
     match /promises/{promiseId} {
       allow read: if true;
-      allow create, update, delete: if isAdmin();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || isEngagementPromiseUpdate();
     }
 
     match /comments/{commentId} {
@@ -57,13 +70,16 @@ service cloud.firestore {
     }
 
     match /reactions/{reactionId} {
-      allow read: if isModerator();
-      allow create: if onlyKeys(['promiseId', 'participantId', 'reaction', 'createdAt']) && request.resource.data.participantId is string && request.resource.data.participantId.size() >= 3 && request.resource.data.reaction in ['like', 'dislike'];
-      allow update, delete: if isModerator();
+      allow read: if true;
+      allow create: if isReactionWrite();
+      allow update: if isReactionWrite()
+        && request.resource.data.participantId == resource.data.participantId
+        && request.resource.data.promiseId == resource.data.promiseId;
+      allow delete: if isModerator();
     }
 
     match /votes/{voteId} {
-      allow read: if isModerator();
+      allow read: if true;
       allow create: if onlyKeys(['promiseId', 'participantId', 'createdAt']) && request.resource.data.participantId is string && request.resource.data.participantId.size() >= 3;
       allow update, delete: if isModerator();
     }

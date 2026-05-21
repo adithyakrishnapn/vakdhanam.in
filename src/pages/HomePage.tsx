@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import type { FeedMode } from '@/store/useAppStore';
 import { motion } from 'framer-motion';
 import { Flame, Search, Filter, Sparkles, ArrowRight, ShieldCheck, MessageSquare, ArrowUpDown, Menu, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -25,14 +26,17 @@ export default function HomePage() {
   });
   const promises = useAppStore((state) => state.promises);
   const search = useAppStore((state) => state.search);
-  const category = useAppStore((state) => state.category);
-  const district = useAppStore((state) => state.district);
-  const feedMode = useAppStore((state) => state.feedMode);
   const setSearch = useAppStore((state) => state.setSearch);
-  const setCategory = useAppStore((state) => state.setCategory);
-  const setDistrict = useAppStore((state) => state.setDistrict);
-  const setFeedMode = useAppStore((state) => state.setFeedMode);
-  const clearFilters = useAppStore((state) => state.clearFilters);
+  const [category, setCategory] = useState('All');
+  const [district, setDistrict] = useState('All');
+  const [feedMode, setFeedMode] = useState<FeedMode>('trending');
+
+  const clearFilters = useCallback(() => {
+    setCategory('All');
+    setDistrict('All');
+    setFeedMode('trending');
+    setSearch('');
+  }, [setSearch]);
   const loading = useAppStore((state) => state.loading);
   const firebaseReady = useAppStore((state) => state.firebaseReady);
   const authSession = useAppStore((state) => state.authSession);
@@ -43,6 +47,44 @@ export default function HomePage() {
   };
 
   const normalize = (value: string) => value.trim().toLowerCase();
+
+  const keralaDistricts = useMemo(
+    () => new Set(districtOptions.filter((option) => option !== 'All' && option !== 'Kerala').map(normalize)),
+    [],
+  );
+
+  const matchesDistrict = (promiseDistrict: string, selected: string) => {
+    if (selected === 'All') {
+      return true;
+    }
+    const normalizedPromiseDistrict = normalize(promiseDistrict);
+    const normalizedSelected = normalize(selected);
+    if (normalizedSelected === 'kerala') {
+      return normalizedPromiseDistrict === 'kerala' || keralaDistricts.has(normalizedPromiseDistrict);
+    }
+    return normalizedPromiseDistrict === normalizedSelected;
+  };
+
+  const matchesCategory = (entry: (typeof promises)[number], selected: string) => {
+    if (selected === 'All') {
+      return true;
+    }
+    const selectedCategory = normalize(selected);
+    return [entry.category, entry.minister ?? ''].some((value) => normalize(String(value)) === selectedCategory);
+  };
+
+  const feedTitle = useMemo(() => {
+    switch (feedMode) {
+      case 'votes':
+        return 'Most voted promises';
+      case 'recent':
+        return 'Recent promises';
+      case 'completed':
+        return 'Completed promises';
+      default:
+        return 'Trending promises';
+    }
+  }, [feedMode]);
 
   const filtered = useMemo(() => {
     let items = [...promises];
@@ -56,12 +98,10 @@ export default function HomePage() {
       );
     }
     if (category !== 'All') {
-      const selectedCategory = normalize(category);
-      items = items.filter((entry) => normalize(entry.category) === selectedCategory);
+      items = items.filter((entry) => matchesCategory(entry, category));
     }
     if (district !== 'All') {
-      const selectedDistrict = normalize(district);
-      items = items.filter((entry) => normalize(entry.district) === selectedDistrict);
+      items = items.filter((entry) => matchesDistrict(entry.district, district));
     }
     switch (feedMode) {
       case 'votes':
@@ -82,8 +122,8 @@ export default function HomePage() {
         title="Vakdhanam.in"
         description="Track election promises, vote on what should happen first, and keep political memory alive."
       />
-      <div className="absolute inset-0 soft-grid opacity-20" />
-      <div className="absolute inset-x-0 top-0 h-[32rem] bg-hero-grid opacity-80" />
+      <div className="pointer-events-none absolute inset-0 soft-grid opacity-20" aria-hidden />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[32rem] bg-hero-grid opacity-80" aria-hidden />
 
       <header className="sticky top-0 z-40 border-b border-white/8 bg-black/40 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 md:flex-row md:items-center md:justify-between md:px-6">
@@ -170,7 +210,7 @@ export default function HomePage() {
         </motion.div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 pb-24 pt-6 md:px-6 md:pt-10">
+      <main className="relative z-10 mx-auto max-w-7xl px-4 pb-24 pt-6 md:px-6 md:pt-10">
         <section className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
           <Card className="relative overflow-hidden border-white/12 bg-[linear-gradient(145deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] p-6 md:p-8">
             <div className="absolute right-0 top-0 h-52 w-52 rounded-full bg-accent/10 blur-3xl" />
@@ -263,17 +303,15 @@ export default function HomePage() {
               <Filter size={16} className="text-accent" />
               <p className="text-xs uppercase tracking-[0.3em] text-white/45 font-semibold">Sector</p>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-none">
               {categoryOptions.map((option) => (
                 <Button
                   key={option}
+                  type="button"
                   variant={category === option ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => {
-                    setCategory(option);
-                    showPopup('Sector filter applied', option === 'All' ? 'Showing every sector.' : `Showing ${option} promises.`, 'success');
-                  }}
-                  className={category === option ? 'animate-pulse' : 'hover:bg-white/10'}
+                  onClick={() => setCategory(option)}
+                  className={`shrink-0 ${category === option ? '' : 'hover:bg-white/10'}`}
                 >
                   {option}
                 </Button>
@@ -286,17 +324,15 @@ export default function HomePage() {
               <Filter size={16} className="text-brand-yellow" />
               <p className="text-xs uppercase tracking-[0.3em] text-white/45 font-semibold">Location</p>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-none">
               {districtOptions.map((option) => (
                 <Button
                   key={option}
+                  type="button"
                   variant={district === option ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => {
-                    setDistrict(option);
-                    showPopup('Place filter applied', option === 'All' ? 'Showing every district.' : `Showing promises from ${option}.`, 'success');
-                  }}
-                  className={district === option ? 'animate-pulse' : 'hover:bg-white/10'}
+                  onClick={() => setDistrict(option)}
+                  className={`shrink-0 ${district === option ? '' : 'hover:bg-white/10'}`}
                 >
                   {option}
                 </Button>
@@ -326,9 +362,13 @@ export default function HomePage() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <p className="text-xs uppercase tracking-[0.3em] text-white/45">Public feed</p>
-                <h2 className="text-3xl font-bold">Trending promises</h2>
+                <h2 className="text-2xl font-bold sm:text-3xl">{feedTitle}</h2>
+                <p className="mt-1 text-sm text-white/50">
+                  {filtered.length} {filtered.length === 1 ? 'promise' : 'promises'}
+                  {(category !== 'All' || district !== 'All') && ` · ${category !== 'All' ? category : 'All sectors'} · ${district !== 'All' ? district : 'All places'}`}
+                </p>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-none sm:flex-wrap sm:overflow-visible">
                 {[
                   ['Trending', 'trending'],
                   ['Votes', 'votes'],
@@ -337,13 +377,11 @@ export default function HomePage() {
                 ].map(([label, value]) => (
                   <Button
                     key={value}
+                    type="button"
                     variant={feedMode === value ? 'default' : 'ghost'}
                     size="sm"
-                    onClick={() => {
-                      setFeedMode(value as typeof feedMode);
-                      showPopup('Sort applied', `${label} order is now active.`, 'success');
-                    }}
-                    className={feedMode === value ? 'animate-pulse' : 'hover:bg-white/10'}
+                    onClick={() => setFeedMode(value as FeedMode)}
+                    className={`shrink-0 sm:shrink ${feedMode === value ? '' : 'hover:bg-white/10'}`}
                   >
                     <ArrowUpDown size={14} /> {label}
                   </Button>
