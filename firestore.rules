@@ -48,9 +48,9 @@ service cloud.firestore {
 
     match /comments/{commentId} {
       allow read: if true;
-      allow create: if onlyKeys(['id', 'promiseId', 'userId', 'content', 'likes', 'createdAt']) && request.resource.data.userId is string && request.resource.data.userId.size() >= 3 && request.resource.data.content is string && request.resource.data.content.size() <= 500;
+      allow create: if onlyKeys(['id', 'promiseId', 'userId', 'authorName', 'content', 'likes', 'createdAt']) && request.resource.data.userId is string && request.resource.data.userId.size() >= 3 && request.resource.data.content is string && request.resource.data.content.size() <= 500 && request.resource.data.likes == 0;
       allow update: if isModerator();
-      allow delete: if isModerator();
+      allow delete: if isModerator() || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
 
     match /polls/{pollId} {
@@ -65,8 +65,9 @@ service cloud.firestore {
 
     match /submissions/{submissionId} {
       allow read: if isModerator() || (isSignedIn() && resource.data.createdBy == request.auth.uid);
-      allow create: if isVerifiedEmail() && onlyKeys(['id', 'title', 'description', 'sourceLink', 'electionYear', 'category', 'district', 'screenshotUrl', 'createdBy', 'status', 'createdAt']) && request.resource.data.createdBy == request.auth.uid;
-      allow update, delete: if isModerator() || (isSignedIn() && resource.data.createdBy == request.auth.uid);
+      allow create: if isVerifiedEmail() && onlyKeys(['id', 'title', 'description', 'sourceLink', 'electionYear', 'category', 'district', 'screenshotUrl', 'createdBy', 'status', 'createdAt']) && request.resource.data.createdBy == request.auth.uid && request.resource.data.status == 'Pending Review';
+      allow update: if isModerator() || (isSignedIn() && resource.data.createdBy == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'description', 'sourceLink', 'electionYear', 'category', 'district', 'screenshotUrl']));
+      allow delete: if isModerator() || (isSignedIn() && resource.data.createdBy == request.auth.uid);
     }
 
     match /reactions/{reactionId} {

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Mail, LogOut, ShieldCheck, Loader2, Chrome } from 'lucide-react';
-import { getRedirectResult, onAuthStateChanged, signInWithEmailAndPassword, signInWithRedirect, signOut } from 'firebase/auth';
+import { Mail, LogOut, ShieldCheck, Loader2, Chrome, ArrowLeft } from 'lucide-react';
+import { getRedirectResult, onAuthStateChanged, signInWithEmailAndPassword, signInWithRedirect, signOut, signInWithPopup } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -48,8 +48,18 @@ export default function AuthPage() {
     setBusy(true);
     setPopup({ open: false, title: '', message: '', variant: 'info' });
     try {
-      setPopup({ open: true, title: 'Redirecting', message: 'Taking you to Google sign-in now.', variant: 'info' });
-      await signInWithRedirect(auth, getGoogleProvider());
+      setPopup({ open: true, title: 'Connecting to Google', message: 'Opening secure Google sign-in window...', variant: 'info' });
+      await signInWithPopup(auth, getGoogleProvider());
+      setPopup({ open: true, title: 'Login successful', message: 'Taking you to your dashboard.', variant: 'success' });
+      window.setTimeout(() => navigate('/me', { replace: true }), 1000);
+    } catch (popupError) {
+      try {
+        setPopup({ open: true, title: 'Redirecting', message: 'Opening full page Google sign-in...', variant: 'info' });
+        await signInWithRedirect(auth, getGoogleProvider());
+      } catch (redirectError) {
+        const message = redirectError instanceof Error ? redirectError.message : 'Unable to log in with Google.';
+        setPopup({ open: true, title: 'Google Login failed', message, variant: 'error' });
+      }
     } finally {
       setBusy(false);
     }
@@ -100,8 +110,15 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="mx-auto min-h-screen max-w-5xl px-4 py-8 md:px-6 md:py-12">
+    <div className="mx-auto min-h-screen max-w-5xl px-4 py-8 md:px-6 md:py-12 space-y-4">
       <Seo title="Login" description="Login to submit promises and manage your own dashboard." path="/login" />
+      
+      <div className="flex justify-start">
+        <Button variant="ghost" className="gap-2 text-white/60 hover:text-white" onClick={() => navigate('/')}>
+          <ArrowLeft size={16} /> Home
+        </Button>
+      </div>
+
       <Card>
         <CardContent className="grid gap-6 p-6 md:grid-cols-[0.9fr_1.1fr] md:p-8">
           <div className="space-y-4">

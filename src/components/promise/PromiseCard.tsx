@@ -74,21 +74,26 @@ export default function PromiseCard({ promise, onFeedback }: Props) {
   };
 
   return (
-    <Card className={`overflow-hidden ${promise.pinned ? 'ring-1 ring-accent/40' : ''}`}>
-      <CardContent className="space-y-4 p-5 md:p-6">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="space-y-2">
+    <Card className={`w-full min-w-0 max-w-full overflow-hidden ${promise.pinned ? 'ring-1 ring-accent/40' : ''}`}>
+      <CardContent className="space-y-4 p-4 sm:p-5 md:p-6">
+        <div className="flex min-w-0 items-start gap-3">
+          <div className="min-w-0 flex-1 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <Badge className={statusClass[promise.status]}>{promise.status}</Badge>
               {promise.verified && <Badge className="border-brand-green/30 bg-brand-green/10 text-brand-green">Verified</Badge>}
               {promise.pinned && <Badge className="border-accent/30 bg-accent/10 text-accent">Pinned</Badge>}
             </div>
-            <button onClick={() => navigate(`/promise/${promise.id}`)} className="text-left">
-              <h3 className="text-2xl font-bold leading-tight text-white hover:text-accent">{promise.title}</h3>
+            <button onClick={() => navigate(`/promise/${promise.id}`)} className="block w-full min-w-0 text-left">
+              <h3 className="break-words text-xl font-bold leading-tight text-white hover:text-accent sm:text-2xl">{promise.title}</h3>
             </button>
-            <p className="max-w-3xl text-sm leading-7 text-white/65">{promise.description}</p>
+            <p className="break-words text-sm leading-7 text-white/65">{promise.description}</p>
           </div>
-          <button onClick={() => navigate(`/promise/${promise.id}`)} className="rounded-full border border-white/10 bg-white/5 p-3 text-white/70 transition hover:border-accent/40 hover:text-white">
+          <button
+            type="button"
+            onClick={() => navigate(`/promise/${promise.id}`)}
+            className="shrink-0 rounded-full border border-white/10 bg-white/5 p-3 text-white/70 transition hover:border-accent/40 hover:text-white"
+            aria-label="Open promise"
+          >
             <Link2 size={18} />
           </button>
         </div>
@@ -99,12 +104,12 @@ export default function PromiseCard({ promise, onFeedback }: Props) {
           <span className="rounded-full bg-white/5 px-3 py-1">{promise.minister ?? 'Cabinet watch'}</span>
         </div>
 
-        <div className="space-y-2 rounded-2xl border border-white/8 bg-black/25 p-4">
-          <div className="flex items-center justify-between text-xs uppercase tracking-[0.2em] text-white/45">
-            <span>Progress</span>
-            <span>{promise.progress}%</span>
+        <div className="min-w-0 space-y-2 rounded-2xl border border-white/8 bg-black/25 p-4">
+          <div className="flex min-w-0 items-center justify-between gap-2 text-xs uppercase tracking-[0.2em] text-white/45">
+            <span className="shrink-0">Progress</span>
+            <span className="shrink-0 tabular-nums">{promise.progress}%</span>
           </div>
-          <div className="h-2 overflow-hidden rounded-full bg-white/10">
+          <div className="h-2 w-full min-w-0 overflow-hidden rounded-full bg-white/10">
             <motion.div className="h-full rounded-full bg-gradient-to-r from-accent via-white to-brand-green" initial={{ width: 0 }} animate={{ width: `${promise.progress}%` }} transition={{ duration: 0.8, ease: 'easeOut' }} />
           </div>
         </div>
@@ -123,7 +128,7 @@ export default function PromiseCard({ promise, onFeedback }: Props) {
         </div>
       </CardContent>
 
-      <CardFooter className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-5 md:p-6">
+      <CardFooter className="flex flex-col items-stretch justify-between gap-4 p-4 sm:flex-row sm:items-center sm:p-5 md:p-6">
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           <Button
             variant="outline"

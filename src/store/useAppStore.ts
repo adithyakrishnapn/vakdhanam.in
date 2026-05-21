@@ -40,7 +40,7 @@ interface AppState {
   likePromise: (id: string) => Promise<void>;
   dislikePromise: (id: string) => Promise<void>;
   votePromise: (id: string) => Promise<void>;
-  addComment: (payload: { promiseId: string; content: string }) => Promise<void>;
+  addComment: (payload: { promiseId: string; content: string; authorName?: string }) => Promise<void>;
   submitPromise: (payload: unknown) => Promise<void>;
   editPromiseStatus: (id: string, status: PromiseStatus, progress?: number, pinned?: boolean) => Promise<void>;
   pinPromise: (id: string) => Promise<void>;
@@ -201,10 +201,10 @@ export const useAppStore = create<AppState>()(
           )),
         }));
       },
-      addComment: async ({ promiseId, content }) => {
+      addComment: async ({ promiseId, content, authorName }) => {
         const safe = sanitizeText(commentSchema.parse({ promiseId, content }).content);
         const participantId = get().authSession?.uid ?? get().profile?.id ?? get().reactionIdentityId;
-        await callSubmitComment({ promiseId, content: safe, participantId });
+        await callSubmitComment({ promiseId, content: safe, participantId, authorName });
         set((state) => ({
           promises: state.promises.map((promise) => (
             promise.id === promiseId

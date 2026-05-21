@@ -117,7 +117,7 @@ export default function HomePage() {
 
   const topThree = filtered.slice(0, 3);
   return (
-    <div className="relative overflow-hidden">
+    <div className="relative w-full max-w-[100vw] overflow-x-hidden">
       <Seo
         title="Vakdhanam.in"
         description="Track election promises, vote on what should happen first, and keep political memory alive."
@@ -210,9 +210,9 @@ export default function HomePage() {
         </motion.div>
       </header>
 
-      <main className="relative z-10 mx-auto max-w-7xl px-4 pb-24 pt-6 md:px-6 md:pt-10">
-        <section className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
-          <Card className="relative overflow-hidden border-white/12 bg-[linear-gradient(145deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] p-6 md:p-8">
+      <main className="relative z-10 mx-auto w-full min-w-0 max-w-7xl px-4 pb-24 pt-6 md:px-6 md:pt-10">
+        <section className="grid min-w-0 gap-6 lg:grid-cols-[1.3fr_0.7fr]">
+          <Card className="relative min-w-0 overflow-hidden border-white/12 bg-[linear-gradient(145deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] p-4 sm:p-6 md:p-8">
             <div className="absolute right-0 top-0 h-52 w-52 rounded-full bg-accent/10 blur-3xl" />
             <div className="absolute bottom-0 left-0 h-36 w-36 rounded-full bg-brand-green/10 blur-3xl" />
             <div className="relative space-y-5">
@@ -221,7 +221,7 @@ export default function HomePage() {
               </div>
               <div className="space-y-4">
                 <p className="font-malayalam text-2xl font-semibold text-white/85 md:text-3xl">{heroCopy}</p>
-                <h1 className="max-w-3xl font-display text-4xl font-bold leading-[0.95] tracking-tight text-balance text-white md:text-7xl">
+                <h1 className="max-w-3xl break-words font-display text-3xl font-bold leading-[0.95] tracking-tight text-balance text-white sm:text-4xl md:text-7xl">
                   Keep politicians on a public receipt trail.
                 </h1>
                 <p className="max-w-2xl text-base leading-7 text-white/70 md:text-lg">
@@ -297,13 +297,13 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="mt-8 space-y-4 rounded-3xl border border-white/10 bg-white/[0.03] p-6">
+        <section className="mt-8 min-w-0 space-y-4 rounded-3xl border border-white/10 bg-white/[0.03] p-4 sm:p-6">
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Filter size={16} className="text-accent" />
               <p className="text-xs uppercase tracking-[0.3em] text-white/45 font-semibold">Sector</p>
             </div>
-            <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-none">
+            <div className="flex w-full min-w-0 gap-2 overflow-x-auto pb-1 scrollbar-none">
               {categoryOptions.map((option) => (
                 <Button
                   key={option}
@@ -324,7 +324,7 @@ export default function HomePage() {
               <Filter size={16} className="text-brand-yellow" />
               <p className="text-xs uppercase tracking-[0.3em] text-white/45 font-semibold">Location</p>
             </div>
-            <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-none">
+            <div className="flex w-full min-w-0 gap-2 overflow-x-auto pb-1 scrollbar-none">
               {districtOptions.map((option) => (
                 <Button
                   key={option}
@@ -357,10 +357,10 @@ export default function HomePage() {
           )}
         </section>
 
-        <section id="feed" className="mt-8 grid gap-6 lg:grid-cols-[1fr_0.35fr]">
-          <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
+        <section id="feed" className="mt-8 grid min-w-0 gap-6 lg:grid-cols-[1fr_0.35fr]">
+          <div className="min-w-0 space-y-4">
+            <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
                 <p className="text-xs uppercase tracking-[0.3em] text-white/45">Public feed</p>
                 <h2 className="text-2xl font-bold sm:text-3xl">{feedTitle}</h2>
                 <p className="mt-1 text-sm text-white/50">
@@ -368,7 +368,7 @@ export default function HomePage() {
                   {(category !== 'All' || district !== 'All') && ` · ${category !== 'All' ? category : 'All sectors'} · ${district !== 'All' ? district : 'All places'}`}
                 </p>
               </div>
-              <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-none sm:flex-wrap sm:overflow-visible">
+              <div className="flex w-full min-w-0 gap-2 overflow-x-auto pb-1 scrollbar-none sm:w-auto sm:flex-wrap sm:overflow-visible">
                 {[
                   ['Trending', 'trending'],
                   ['Votes', 'votes'],
@@ -389,14 +389,14 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="grid gap-4">
+            <div className="grid min-w-0 gap-4">
               {loading && (
                 <Card className="p-10 text-center text-white/60">
                   Loading promises politicians forgot...
                 </Card>
               )}
               {filtered.map((item, index) => (
-                <motion.div key={item.id} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.03 }}>
+                <motion.div key={item.id} className="min-w-0 w-full" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.03 }}>
                   <PromiseCard
                     promise={item}
                     onFeedback={(feedback) => showPopup(feedback.title, feedback.message, feedback.variant)}
@@ -418,7 +418,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <aside className="space-y-4">
+          <aside className="min-w-0 space-y-4">
             <Card className="p-5">
               <p className="text-xs uppercase tracking-[0.3em] text-white/45">Why this exists</p>
               <div className="mt-3 space-y-3 text-sm leading-7 text-white/70">

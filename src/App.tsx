@@ -46,7 +46,7 @@ export default function App() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.22, ease: 'easeOut' }}
-          className="min-h-screen"
+          className="min-h-screen w-full max-w-[100vw] overflow-x-hidden"
         >
           <Suspense
             fallback={

@@ -48,6 +48,7 @@ export function mapCommentDocument(id: string, data: any): CommentItem {
     id,
     promiseId: String(data['promiseId'] ?? ''),
     userId: String(data['userId'] ?? ''),
+    authorName: data['authorName'] ? String(data['authorName']) : undefined,
     content: String(data['content'] ?? ''),
     likes: Number(data['likes'] ?? 0),
     createdAt: toStringDate(data['createdAt']),

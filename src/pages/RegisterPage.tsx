@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Mail, Loader2, Chrome, ShieldCheck } from 'lucide-react';
-import { createUserWithEmailAndPassword, getRedirectResult, onAuthStateChanged, sendEmailVerification, updateProfile, signInWithRedirect } from 'firebase/auth';
+import { Mail, Loader2, Chrome, ShieldCheck, ArrowLeft } from 'lucide-react';
+import { createUserWithEmailAndPassword, getRedirectResult, onAuthStateChanged, sendEmailVerification, updateProfile, signInWithRedirect, signInWithPopup } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -41,6 +41,18 @@ export default function RegisterPage() {
     return unsubscribe;
   }, []);
 
+  useEffect(() => {
+    if (authSession) {
+      setPopup({ open: true, title: 'Signup successful', message: 'Taking you to your dashboard.', variant: 'success' });
+      const timer = window.setTimeout(() => {
+        navigate('/me', { replace: true });
+      }, 1000);
+
+      return () => window.clearTimeout(timer);
+    }
+    return undefined;
+  }, [authSession, navigate]);
+
   async function handleGoogleRegister() {
     const auth = getFirebaseAuth();
     if (!auth) {
@@ -49,9 +61,20 @@ export default function RegisterPage() {
     }
 
     setBusy(true);
-    setPopup({ open: true, title: 'Redirecting', message: 'Taking you to Google sign-in now.', variant: 'info' });
+    setPopup({ open: false, title: '', message: '', variant: 'info' });
     try {
-      await signInWithRedirect(auth, getGoogleProvider());
+      setPopup({ open: true, title: 'Connecting to Google', message: 'Opening secure Google sign-in window...', variant: 'info' });
+      await signInWithPopup(auth, getGoogleProvider());
+      setPopup({ open: true, title: 'Signup successful', message: 'Taking you to your dashboard.', variant: 'success' });
+      window.setTimeout(() => navigate('/me', { replace: true }), 1000);
+    } catch (popupError) {
+      try {
+        setPopup({ open: true, title: 'Redirecting', message: 'Opening full page Google sign-in...', variant: 'info' });
+        await signInWithRedirect(auth, getGoogleProvider());
+      } catch (redirectError) {
+        const message = redirectError instanceof Error ? redirectError.message : 'Unable to sign up with Google.';
+        setPopup({ open: true, title: 'Google Signup failed', message, variant: 'error' });
+      }
     } finally {
       setBusy(false);
     }
@@ -78,8 +101,15 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="mx-auto min-h-screen max-w-5xl px-4 py-8 md:px-6 md:py-12">
+    <div className="mx-auto min-h-screen max-w-5xl px-4 py-8 md:px-6 md:py-12 space-y-4">
       <Seo title="Register" description="Create an account to submit promises and manage your own activity." path="/register" />
+      
+      <div className="flex justify-start">
+        <Button variant="ghost" className="gap-2 text-white/60 hover:text-white" onClick={() => navigate('/')}>
+          <ArrowLeft size={16} /> Home
+        </Button>
+      </div>
+
       <Card>
         <CardContent className="grid gap-6 p-6 md:grid-cols-[0.9fr_1.1fr] md:p-8">
           <div className="space-y-4">

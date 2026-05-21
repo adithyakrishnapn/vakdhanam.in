@@ -39,14 +39,15 @@ export function subscribePromiseComments(promiseId: string, onUpdate: (items: Co
     return () => undefined;
   }
 
-  const commentQuery = query(collection(db, 'comments'), where('promiseId', '==', promiseId), orderBy('createdAt', 'desc'), limit(200));
+  const commentQuery = query(collection(db, 'comments'), where('promiseId', '==', promiseId), limit(200));
   return onSnapshot(commentQuery, (snapshot) => {
-    onUpdate(
-      snapshot.docs
-        .map((entry) => mapCommentDocument(entry.id, entry.data() as Record<string, unknown>))
-        .filter((comment) => comment.moderationStatus !== 'Spam' && comment.moderationStatus !== 'Hidden'),
-    );
-  }, () => {
+    const items = snapshot.docs
+      .map((entry) => mapCommentDocument(entry.id, entry.data() as Record<string, unknown>))
+      .filter((comment) => comment.moderationStatus !== 'Spam' && comment.moderationStatus !== 'Hidden')
+      .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+    onUpdate(items);
+  }, (error) => {
+    console.error("subscribePromiseComments failed:", error);
     onUpdate([]);
   });
 }
@@ -133,11 +134,12 @@ export async function fetchPromiseCommentsOnce(promiseId: string) {
     return [] as CommentItem[];
   }
 
-  const commentQuery = query(collection(db, 'comments'), where('promiseId', '==', promiseId), orderBy('createdAt', 'desc'), limit(200));
+  const commentQuery = query(collection(db, 'comments'), where('promiseId', '==', promiseId), limit(200));
   const snapshot = await getDocs(commentQuery);
   return snapshot.docs
     .map((entry) => mapCommentDocument(entry.id, entry.data() as Record<string, unknown>))
-    .filter((comment) => comment.moderationStatus !== 'Spam' && comment.moderationStatus !== 'Hidden');
+    .filter((comment) => comment.moderationStatus !== 'Spam' && comment.moderationStatus !== 'Hidden')
+    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
 }
 
 export async function castReaction(input: { promiseId: string; participantId: string; reaction: 'like' | 'dislike' }) {
@@ -238,7 +240,7 @@ export async function castVote(input: { promiseId: string; participantId: string
   });
 }
 
-export async function submitComment(input: { promiseId: string; content: string; participantId: string }) {
+export async function submitComment(input: { promiseId: string; content: string; participantId: string; authorName?: string }) {
   const db = getFirebaseDb();
   if (!db) {
     throw new Error('Firebase is not available');
@@ -258,6 +260,7 @@ export async function submitComment(input: { promiseId: string; content: string;
       id: commentRef.id,
       promiseId: input.promiseId,
       userId: participantId,
+      authorName: input.authorName || 'Anonymous',
       content: input.content.trim(),
       likes: 0,
       createdAt: serverTimestamp(),

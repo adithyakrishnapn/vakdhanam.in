@@ -19,11 +19,18 @@ export default function PromisePage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const profile = useAppStore((state) => state.profile);
+  const authSession = useAppStore((state) => state.authSession);
   const votePromise = useAppStore((state) => state.votePromise);
   const likePromise = useAppStore((state) => state.likePromise);
   const dislikePromise = useAppStore((state) => state.dislikePromise);
   const addComment = useAppStore((state) => state.addComment);
   const [content, setContent] = useState('');
+  const [tempName, setTempName] = useState(() => {
+    if (profile && profile.username !== 'vakdhanm_user') {
+      return profile.username;
+    }
+    return localStorage.getItem('vakdhanam_temp_commenter_name') || '';
+  });
   const [promise, setPromise] = useState<PromiseItem | null>(null);
   const [comments, setComments] = useState<CommentItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -361,13 +368,50 @@ export default function PromisePage() {
 
             <div className="space-y-3 rounded-2xl border border-white/10 bg-black/20 p-4">
               <Textarea value={content} onChange={(event) => setContent(event.target.value)} placeholder="Drop your take. Soft account optional, chaos mandatory." />
+              
+              {!authSession && (
+                <div className="flex flex-col gap-1.5 border-t border-white/5 pt-3">
+                  <label htmlFor="commenter-name" className="text-xs uppercase tracking-[0.2em] text-white/45 font-medium">
+                    Your Name (Temporary Display Name)
+                  </label>
+                  <input
+                    id="commenter-name"
+                    type="text"
+                    value={tempName}
+                    onChange={(e) => setTempName(e.target.value)}
+                    placeholder="E.g., Concerned Citizen, Rebel, etc."
+                    className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-white/30 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition"
+                  />
+                </div>
+              )}
+
               <div className="flex items-center justify-between gap-3 text-xs text-white/45">
-                <span>{profile ? `Posting as ${profile.username}` : 'Posting anonymously with a stable local identity.'}</span>
+                <span>
+                  {authSession 
+                    ? `Posting as ${authSession.displayName}` 
+                    : tempName.trim() 
+                      ? `Posting as ${tempName.trim()} (Guest)`
+                      : `Posting as Guest Citizen`
+                  }
+                </span>
                 <Button
                   size="sm"
                   onClick={async () => {
                     try {
-                      await addComment({ promiseId: promise.id, content: sanitizeText(content) });
+                      const finalAuthorName = authSession 
+                        ? authSession.displayName 
+                        : (tempName.trim() || 'Guest Citizen');
+
+                      await addComment({ 
+                        promiseId: promise.id, 
+                        content: sanitizeText(content), 
+                        authorName: finalAuthorName 
+                      });
+                      
+                      if (tempName.trim() && !authSession) {
+                        localStorage.setItem('vakdhanam_temp_commenter_name', tempName.trim());
+                      }
+                      
                       setContent('');
                       setPopup({ open: true, title: 'Comment posted', message: 'Your comment is now visible.', variant: 'success' });
                     } catch (cause) {
@@ -386,11 +430,13 @@ export default function PromisePage() {
               </div>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar scroll-smooth">
               {comments.map((comment) => (
-                <div key={comment.id} className="rounded-2xl border border-white/8 bg-white/5 p-4">
+                <div key={comment.id} className="rounded-2xl border border-white/8 bg-white/5 p-4 transition-all hover:bg-white/[0.07]">
                   <div className="flex items-center justify-between text-xs uppercase tracking-[0.18em] text-white/35">
-                    <span>{comment.userId}</span>
+                    <span className="font-semibold text-accent/90">
+                      {comment.authorName || (comment.userId.startsWith('vakdhanm_user') ? 'Guest Citizen' : `User (${comment.userId.slice(0, 6)})`)}
+                    </span>
                     <span>{formatRelativeTime(comment.createdAt)}</span>
                   </div>
                   <p className="mt-3 leading-7 text-white/80">{comment.content}</p>

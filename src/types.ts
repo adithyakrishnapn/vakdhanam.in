@@ -67,6 +67,7 @@ export interface CommentItem {
   id: string;
   promiseId: string;
   userId: string;
+  authorName?: string;
   content: string;
   likes: number;
   createdAt: string;

@@ -10,7 +10,8 @@ interface SeoProps {
 
 export function Seo({ title, description, path = '/', image = '/favicon.svg', type = 'website' }: SeoProps) {
   useEffect(() => {
-    document.title = `${title} | Vakdhanam.in`;
+    const fullTitle = title.toLowerCase().includes('vakdhanam') ? title : `${title} | Vakdhanam.in`;
+    document.title = fullTitle;
 
     const updateMeta = (selector: string, attribute: 'name' | 'property', value: string) => {
       let element = document.head.querySelector<HTMLMetaElement>(`${selector}[${attribute}='${value}']`);
@@ -23,13 +24,13 @@ export function Seo({ title, description, path = '/', image = '/favicon.svg', ty
     };
 
     updateMeta('meta', 'name', 'description').setAttribute('content', description);
-    updateMeta('meta', 'property', 'og:title').setAttribute('content', `${title} | Vakdhanam.in`);
+    updateMeta('meta', 'property', 'og:title').setAttribute('content', fullTitle);
     updateMeta('meta', 'property', 'og:description').setAttribute('content', description);
     updateMeta('meta', 'property', 'og:type').setAttribute('content', type);
     updateMeta('meta', 'property', 'og:image').setAttribute('content', image);
     updateMeta('meta', 'property', 'og:url').setAttribute('content', `https://vakdhanam.in${path}`);
     updateMeta('meta', 'property', 'twitter:card').setAttribute('content', 'summary_large_image');
-    updateMeta('meta', 'property', 'twitter:title').setAttribute('content', `${title} | Vakdhanam.in`);
+    updateMeta('meta', 'property', 'twitter:title').setAttribute('content', fullTitle);
     updateMeta('meta', 'property', 'twitter:description').setAttribute('content', description);
     updateMeta('meta', 'property', 'twitter:image').setAttribute('content', image);
 

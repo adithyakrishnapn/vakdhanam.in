@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, MessageSquare, FileText, LogOut, UserCircle2, Pencil, Save, Loader2 } from 'lucide-react';
+import { Trash2, MessageSquare, FileText, LogOut, UserCircle2, Pencil, Save, Loader2, Home } from 'lucide-react';
 import { collection, limit, onSnapshot, query, where } from 'firebase/firestore';
 import { signOut, updateProfile } from 'firebase/auth';
 import { Seo } from '@/components/seo/Seo';
@@ -151,7 +151,10 @@ export default function DashboardPage() {
             <p className="text-xs uppercase tracking-[0.3em] text-white/45">Dashboard</p>
             <h1 className="text-3xl font-bold">Login required.</h1>
             <p className="text-white/65">Open your dashboard after signing in so we can show your comments and pending submissions.</p>
-            <Button onClick={() => navigate('/login')}>Login</Button>
+            <div className="flex gap-3">
+              <Button onClick={() => navigate('/login')}>Login</Button>
+              <Button variant="outline" onClick={() => navigate('/')}><Home size={16} /> Home</Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -168,6 +171,7 @@ export default function DashboardPage() {
           <p className="mt-2 text-white/65">Your public comments and submitted promises are listed here.</p>
         </div>
         <div className="flex flex-wrap gap-3">
+          <Button variant="outline" onClick={() => navigate('/')}><Home size={16} /> Home</Button>
           <Button variant="outline" onClick={() => navigate('/submit')}><FileText size={16} /> Submit promise</Button>
           <Button variant="ghost" onClick={async () => {
             const auth = getFirebaseAuth();
@@ -192,21 +196,23 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.2em] text-white/45" htmlFor="username">Username</label>
-              <Input
-                id="username"
-                value={username}
-                onChange={(event) => setUsername(event.target.value)}
-                placeholder="Your account username"
-              />
-              <p className="text-xs text-white/45">This changes the name shown across your account. Soft login users stay as vakdhanm_user.</p>
+          <div className="space-y-2">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <div className="min-w-0 flex-1 space-y-2">
+                <label className="text-xs uppercase tracking-[0.2em] text-white/45" htmlFor="username">Username</label>
+                <Input
+                  id="username"
+                  value={username}
+                  onChange={(event) => setUsername(event.target.value)}
+                  placeholder="Your account username"
+                />
+              </div>
+              <Button onClick={handleUsernameSave} disabled={savingUsername} className="w-full shrink-0 sm:w-auto">
+                {savingUsername ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+                Save username
+              </Button>
             </div>
-            <Button onClick={handleUsernameSave} disabled={savingUsername} className="md:w-fit">
-              {savingUsername ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
-              Save username
-            </Button>
+            <p className="text-xs text-white/45">This changes the name shown across your account. Soft login users stay as vakdhanm_user.</p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 text-sm text-white/65">
