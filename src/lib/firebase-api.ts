@@ -275,11 +275,47 @@ export async function submitComment(input: { promiseId: string; content: string;
 
 export async function deleteOwnComment(input: { commentId: string }) {
   const db = getFirebaseDb();
+  const auth = getFirebaseAuth();
   if (!db) {
     throw new Error('Firebase is not available');
   }
 
-  await deleteDoc(doc(db, 'comments', input.commentId));
+  const uid = auth?.currentUser?.uid;
+  if (!uid) {
+    throw new Error('Login required to delete comments');
+  }
+
+  const commentRef = doc(db, 'comments', input.commentId);
+
+  await runTransaction(db, async (transaction) => {
+    const commentSnapshot = await transaction.get(commentRef);
+    if (!commentSnapshot.exists()) {
+      throw new Error('Comment not found');
+    }
+
+    const commentData = commentSnapshot.data() as { userId?: string; promiseId?: string };
+    if (commentData.userId !== uid) {
+      throw new Error('Not allowed to delete this comment');
+    }
+
+    const promiseId = commentData.promiseId;
+    if (!promiseId) {
+      throw new Error('Comment is missing promise reference');
+    }
+
+    const promiseRef = doc(db, 'promises', promiseId);
+    const promiseSnapshot = await transaction.get(promiseRef);
+    if (!promiseSnapshot.exists()) {
+      throw new Error('Promise not found');
+    }
+
+    const currentCount = Number(promiseSnapshot.data()?.['commentsCount'] ?? 0);
+    transaction.delete(commentRef);
+    transaction.update(promiseRef, {
+      commentsCount: Math.max(0, currentCount - 1),
+      updatedAt: serverTimestamp(),
+    });
+  });
 }
 
 export async function deleteOwnSubmission(input: { submissionId: string }) {
@@ -528,12 +564,28 @@ export async function adminDeleteComment(input: { commentId: string; promiseId: 
   }
 
   const commentRef = doc(db, 'comments', input.commentId);
-  const promiseRef = doc(db, 'promises', input.promiseId);
 
   await runTransaction(db, async (transaction) => {
+    const commentSnapshot = await transaction.get(commentRef);
+    if (!commentSnapshot.exists()) {
+      throw new Error('Comment not found');
+    }
+
+    const promiseId = String(commentSnapshot.data()?.['promiseId'] ?? input.promiseId);
+    if (!promiseId) {
+      throw new Error('Comment is missing promise reference');
+    }
+
+    const promiseRef = doc(db, 'promises', promiseId);
+    const promiseSnapshot = await transaction.get(promiseRef);
+    if (!promiseSnapshot.exists()) {
+      throw new Error('Promise not found');
+    }
+
+    const currentCount = Number(promiseSnapshot.data()?.['commentsCount'] ?? 0);
     transaction.delete(commentRef);
     transaction.update(promiseRef, {
-      commentsCount: increment(-1),
+      commentsCount: Math.max(0, currentCount - 1),
       updatedAt: serverTimestamp(),
     });
   });
